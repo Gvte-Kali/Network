@@ -386,33 +386,37 @@ step10() {
     echo "Réseau Wireguard   : $wireguard_network"
 
     # 3. Configuration du routage et NAT
-    configure_network() {
-        echo -e "\n${YELLOW}Configuration du routage et NAT...${NC}"
+   configure_network() {
+    echo -e "\n${YELLOW}Configuration du routage et NAT...${NC}"
 
-        # Activer le forwarding IP
-        sudo sysctl -w net.ipv4.ip_forward=1
-        sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+    # Activer le forwarding IP
+    sudo sysctl -w net.ipv4.ip_forward=1
+    sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
-        # Nettoyer les règles existantes
-        sudo iptables -F
-        sudo iptables -X
-        sudo iptables -t nat -F
-        sudo iptables -t nat -X
+    # Nettoyer les règles existantes
+    sudo iptables -F
+    sudo iptables -X
+    sudo iptables -t nat -F
+    sudo iptables -t nat -X
 
-        # Ajouter les routes
-        sudo ip route add "$lan_network" dev "$wireguard_interface"
+    # Supprimer la route problématique
+    sudo ip route del 192.168.1.0/24 dev wg0 scope link 2>/dev/null || true
 
-        # Configuration NAT
-        sudo iptables -t nat -A POSTROUTING -s "$wireguard_network" -o "$selected_lan_interface" -j MASQUERADE
+    # Ajouter une route plus précise
+    sudo ip route add 192.168.1.0/24 via 10.251.203.1 dev wg0
 
-        # Règles de forwarding
-        sudo iptables -A FORWARD -i "$wireguard_interface" -o "$selected_lan_interface" -j ACCEPT
-        sudo iptables -A FORWARD -i "$selected_lan_interface" -o "$wireguard_interface" -m state --state ESTABLISHED,RELATED -j ACCEPT
+    # Configuration NAT
+    sudo iptables -t nat -A POSTROUTING -s 10.251.203.0/24 -o eth0 -j MASQUERADE
 
-        # Sauvegarder la configuration
-        sudo apt-get install -y iptables-persistent
-        sudo netfilter-persistent save
-    }
+    # Règles de forwarding plus permissives
+    sudo iptables -P FORWARD ACCEPT
+    sudo iptables -A FORWARD -i wg0 -o eth0 -j ACCEPT
+    sudo iptables -A FORWARD -i eth0 -o wg0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+    # Sauvegarder la configuration
+    sudo apt-get install -y iptables-persistent
+    sudo netfilter-persistent save
+}
 
     # Fonction de diagnostic détaillé
     verify_network_configuration() {
