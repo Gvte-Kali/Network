@@ -332,7 +332,6 @@ step9() {
 
 # Étape 10 : Configuration du routage et NAT entre interfaces VPN et réseau physique
 step10() {
-    # Configuration détaillée pour la communication entre LAN et VPN
     configure_lan_vpn_routing() {
         # Vérification et activation du forwarding IP
         echo -e "${YELLOW}Configuration du forwarding IP...${NC}"
@@ -352,15 +351,22 @@ step10() {
         VPN_NETWORK="10.251.203.0/24"
         LAN_NETWORK="192.168.1.0/24"
 
-        # Configuration des règles de forwarding PLUS PERMISSIVES
+        # Configuration des règles de forwarding COMPLÈTES
         echo -e "${YELLOW}Configuration des règles de forwarding...${NC}"
-        sudo iptables -P FORWARD ACCEPT  # Politique par défaut ACCEPT
         
-        # Autoriser le trafic entre LAN et VPN dans les deux sens
+        # Politique par défaut DROP pour plus de sécurité
+        sudo iptables -P INPUT ACCEPT
+        sudo iptables -P OUTPUT ACCEPT
+        sudo iptables -P FORWARD DROP
+
+        # Autoriser les connexions établies et reliées
+        sudo iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+        # Autoriser le trafic entre LAN et VPN
         sudo iptables -A FORWARD -i "$VPN_INTERFACE" -o "$LAN_INTERFACE" -j ACCEPT
         sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -j ACCEPT
 
-        # Configuration NAT pour les deux réseaux
+        # Configuration NAT robuste
         echo -e "${YELLOW}Configuration NAT...${NC}"
         sudo iptables -t nat -A POSTROUTING -s "$VPN_NETWORK" -o "$LAN_INTERFACE" -j MASQUERADE
         sudo iptables -t nat -A POSTROUTING -s "$LAN_NETWORK" -o "$VPN_INTERFACE" -j MASQUERADE
@@ -372,6 +378,8 @@ step10() {
 
         # Configuration des routes
         echo -e "${YELLOW}Configuration des routes...${NC}"
+        # Supprimer les routes existantes si nécessaire
+        sudo ip route del "$LAN_NETWORK" dev "$VPN_INTERFACE" 2>/dev/null || true
         # Ajouter une route pour le réseau VPN via l'interface Wireguard
         sudo ip route add "$LAN_NETWORK" dev "$VPN_INTERFACE"
 
@@ -379,25 +387,35 @@ step10() {
         echo -e "${YELLOW}Redémarrage du service Wireguard...${NC}"
         sudo systemctl restart wg-quick@wg0
 
-        # Vérification finale
-        echo -e "\n${GREEN}Configuration terminée. Vérification :${NC}"
-        echo -e "${BLUE}Routes :${NC}"
-        ip route show
-        echo -e "\n${BLUE}Règles iptables :${NC}"
-        sudo iptables -L -n -v
+        # Diagnostic détaillé
+        diagnostic_routing() {
+            echo -e "\n${GREEN}Diagnostic de configuration :${NC}"
+            
+            echo -e "${BLUE}Routes :${NC}"
+            ip route show
+            
+            echo -e "\n${BLUE}Règles iptables (Filter) :${NC}"
+            sudo iptables -L -n -v
+            
+            echo -e "\n${BLUE}Règles iptables (NAT) :${NC}"
+            sudo iptables -t nat -L -n -v
+            
+            echo -e "\n${BLUE}Connexions actives :${NC}"
+            sudo netstat -tunapl
+        }
+        
+        diagnostic_routing
     }
 
-    # Vérification des prérequis
+    # Vérification des prérequis (comme précédemment)
     check_prerequisites() {
         echo -e "${YELLOW}Vérification des prérequis...${NC}"
         
-        # Vérifier l'installation de Wireguard
         if ! command -v wg &> /dev/null; then
             echo -e "${RED}Wireguard n'est pas installé.${NC}"
             return 1
         fi
 
-        # Vérifier que PiVPN est configuré
         if [[ ! -f /etc/wireguard/wg0.conf ]]; then
             echo -e "${RED}Configuration PiVPN introuvable.${NC}"
             return 1
