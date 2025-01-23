@@ -531,8 +531,11 @@ step12() {
     fi
   }
   
+  
+  # Récupérer l'utilisateur actuel
+  CURRENT_USER=$(whoami)
   # Déterminer le répertoire correct des certificats OpenVPN
-  OVPN_DIR="/home/gvte/ovpns"
+  OVPN_DIR="/home/$CURRENT_USER/ovpns"
   
   # Vérifier l'existence du répertoire
   if [ ! -d "$OVPN_DIR" ]; then
