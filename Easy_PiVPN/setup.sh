@@ -22,7 +22,7 @@ main_menu() {
 # Fonction pour afficher les choix à chaque étape (en bleu clair)
 step_menu() {
   echo
-  echo -e "${LIGHT_BLUE}[C]ontinue à l'étape suivante | [S]topper le script | [D]o the previous step again | [M]enu principal${NC}"
+  echo -e "${LIGHT_BLUE}[C]ontinuer à l'étape suivante | [S]topper le script | [R]efaire l'étape précédente | [M]enu principal${NC}"
 
   echo
   read -p "Choix : " step_choice
@@ -872,7 +872,7 @@ run_step() {
     case "$step_choice" in
       C|c) return 0 ;;
       S|s) echo "Script arrêté."; exit 0 ;;
-      D|d) echo "Réexécution de l'étape actuelle."; return 1 ;;
+      R|r) echo "Réexécution de l'étape actuelle."; return 1 ;;
       M|m) main_menu_flow; return 0 ;;
       *) echo "Choix invalide. Veuillez réessayer."; continue ;;
     esac
