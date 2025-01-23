@@ -502,7 +502,7 @@ step12() {
     echo -e "${LIGHT_BLUE}PiVPN n'est pas installé.${NC}"
     echo "Veuillez d'abord installer PiVPN à l'étape 9."
     return 1
-  }
+  fi
 
   # Fonction utilitaire pour envoyer un message Discord
   send_discord_message() {
@@ -513,7 +513,7 @@ step12() {
     if [ ! -f "$webhook_file" ]; then
       echo "Webhook Discord non configuré."
       return 1
-    }
+    fi
 
     local discord_webhook=$(cat "$webhook_file")
     
@@ -553,19 +553,19 @@ step12() {
         if [[ ! "$username" =~ ^[a-zA-Z0-9_-]+$ ]]; then
           echo "Nom d'utilisateur invalide."
           continue
-        }
+        fi
 
         if [ -f "$OVPN_DIR/$username.ovpn" ]; then
           echo "Utilisateur existant."
           continue
-        }
+        fi
 
         sudo pivpn -a -n "$username"
         
         user_config="$OVPN_DIR/$username.ovpn"
         if [ -f "$user_config" ]; then
           send_discord_message "Nouvel utilisateur VPN : $username" "$user_config"
-        }
+        fi
         ;;
 
       2)
@@ -578,7 +578,7 @@ step12() {
         else
           echo "$users"
           send_discord_message "Liste des utilisateurs VPN :\n$users"
-        }
+        fi
         ;;
 
       3)
@@ -588,7 +588,7 @@ step12() {
         if [ ${#users[@]} -eq 0 ]; then
           echo "Aucun utilisateur à supprimer."
           continue
-        }
+        fi
 
         echo "Utilisateurs :"
         for i in "${!users[@]}"; do
@@ -604,7 +604,7 @@ step12() {
           user_to_delete="${users[$((user_index-1))]}"
           sudo pivpn -r "$user_to_delete"
           send_discord_message "Utilisateur VPN supprimé : $user_to_delete"
-        }
+        fi
         ;;
 
       4)
@@ -614,7 +614,7 @@ step12() {
         if [ ${#users[@]} -eq 0 ]; then
           echo "Aucun utilisateur à exporter."
           continue
-        }
+        fi
 
         echo "Utilisateurs :"
         for i in "${!users[@]}"; do
@@ -632,7 +632,7 @@ step12() {
           cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
           
           send_discord_message "Configuration exportée : $user_to_export" "$export_path"
-        }
+        fi
         ;;
 
       0) break ;;
