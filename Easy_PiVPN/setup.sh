@@ -756,14 +756,15 @@ main_menu_flow() {
     1)
       # Démarre toutes les étapes de setup
       for i in {0..12}; do
-        if ! "step$i"; then
+        if "step$i"; then
+          run_step || break
+        else
           # En cas d'échec de l'étape, demander que faire
           read -p "L'étape $i a échoué. Voulez-vous continuer ? (O/n) : " continue_choice
           if [[ ! "$continue_choice" =~ ^[Oo]$ ]]; then
             break
           fi
         fi
-        run_step || return
       done
       ;;
     2)
@@ -772,18 +773,25 @@ main_menu_flow() {
       read -p "À quelle étape souhaitez-vous aller (0-13) ? : " specific_step
       echo
       
-      # Gestion de l'exécution de l'étape spécifique
+      # Exécution de l'étape spécifique avec gestion d'erreur
       if "step$specific_step"; then
         run_step
       else
-        read -p "L'étape $specific_step a échoué. Voulez-vous continuer ? (O/n) : " continue_choice
-        if [[ "$continue_choice" =~ ^[Oo]$ ]]; then
+        read -p "L'étape $specific_step a échoué. Voulez-vous réessayer ? (O/n) : " retry_choice
+        if [[ "$retry_choice" =~ ^[Oo]$ ]]; then
+          "step$specific_step"
           run_step
         fi
       fi
       ;;
-    0) echo "Sortie du script."; exit 0 ;;
-    *) echo "Choix invalide. Retour au menu principal..."; main_menu_flow ;;
+    0) 
+      echo "Sortie du script."; 
+      exit 0 
+      ;;
+    *) 
+      echo "Choix invalide. Retour au menu principal..."; 
+      main_menu_flow 
+      ;;
   esac
 }
 
