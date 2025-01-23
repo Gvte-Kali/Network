@@ -332,9 +332,17 @@ step9() {
 
 # Étape 10 : Configuration du routage et NAT entre interfaces VPN et réseau physique
 step10() {
-    echo -e "\n${CYAN}=== Configuration du routage réseau VPN vers LAN ===${NC}"
+    echo -e "\n${CYAN}=== Configuration avancée du routage réseau VPN vers LAN ===${NC}"
 
-    # 1. Lister et sélectionner l'interface LAN
+    # Fonctions utilitaires
+    detect_network_details() {
+        local interface="$1"
+        local ip=$(ip -o -f inet addr show "$interface" | awk '{print $4}' | cut -d/ -f1)
+        local network=$(ipcalc -n "$ip" | grep Network | awk '{print $2}')
+        echo "$ip,$network"
+    }
+
+    # 1. Détection et sélection de l'interface LAN
     echo -e "${YELLOW}Interfaces réseau disponibles :${NC}"
     declare -A lan_interfaces=()
     
@@ -354,12 +362,8 @@ step10() {
         return 1
     fi
 
-    lan_ip="${lan_interfaces[$selected_lan_interface]}"
-    lan_network=$(ipcalc -n "$lan_ip" | grep Network | awk '{print $2}')
-
-    echo -e "${GREEN}Interface LAN sélectionnée : $selected_lan_interface${NC}"
-    echo -e "${GREEN}Adresse IP LAN : $lan_ip${NC}"
-    echo -e "${GREEN}Réseau LAN : $lan_network${NC}"
+    # Récupérer les détails du réseau LAN
+    IFS=',' read -r lan_ip lan_network <<< $(detect_network_details "$selected_lan_interface")
 
     # 2. Détecter l'interface Wireguard
     wireguard_interface=$(ip -br link show | awk '$1 ~ /^wg/ {print $1}')
@@ -369,54 +373,90 @@ step10() {
         return 1
     fi
 
-    # Récupérer l'adresse et le réseau Wireguard
-    wireguard_ip=$(ip -o -f inet addr show "$wireguard_interface" | awk '{print $4}' | cut -d/ -f1)
-    wireguard_network=$(ipcalc -n "$wireguard_ip" | grep Network | awk '{print $2}')
+    # Récupérer les détails du réseau Wireguard
+    IFS=',' read -r wireguard_ip wireguard_network <<< $(detect_network_details "$wireguard_interface")
 
-    echo -e "${GREEN}Interface Wireguard : $wireguard_interface${NC}"
-    echo -e "${GREEN}Adresse IP Wireguard : $wireguard_ip${NC}"
-    echo -e "${GREEN}Réseau Wireguard : $wireguard_network${NC}"
+    # Affichage des informations détectées
+    echo -e "\n${GREEN}Configuration réseau :${NC}"
+    echo "Interface LAN       : $selected_lan_interface"
+    echo "IP LAN             : $lan_ip"
+    echo "Réseau LAN         : $lan_network"
+    echo "Interface Wireguard: $wireguard_interface"
+    echo "IP Wireguard       : $wireguard_ip"
+    echo "Réseau Wireguard   : $wireguard_network"
 
-    # 3. Configuration du routage
-    echo -e "\n${YELLOW}Configuration du routage...${NC}"
+    # 3. Configuration du routage et NAT
+    configure_network() {
+        echo -e "\n${YELLOW}Configuration du routage et NAT...${NC}"
 
-    # Activer le forwarding IP
-    sudo sysctl -w net.ipv4.ip_forward=1
-    sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+        # Activer le forwarding IP
+        sudo sysctl -w net.ipv4.ip_forward=1
+        sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
-    # Nettoyer les règles iptables existantes
-    sudo iptables -F
-    sudo iptables -X
-    sudo iptables -t nat -F
-    sudo iptables -t nat -X
+        # Nettoyer les règles existantes
+        sudo iptables -F
+        sudo iptables -X
+        sudo iptables -t nat -F
+        sudo iptables -t nat -X
 
-    # Ajouter la route statique
-    sudo ip route add "$lan_network" dev "$wireguard_interface"
+        # Ajouter les routes
+        sudo ip route add "$lan_network" dev "$wireguard_interface"
 
-    # Configuration NAT
-    sudo iptables -t nat -A POSTROUTING -s "$wireguard_network" -o "$selected_lan_interface" -j MASQUERADE
+        # Configuration NAT
+        sudo iptables -t nat -A POSTROUTING -s "$wireguard_network" -o "$selected_lan_interface" -j MASQUERADE
 
-    # Règles de forwarding
-    sudo iptables -A FORWARD -i "$wireguard_interface" -o "$selected_lan_interface" -j ACCEPT
-    sudo iptables -A FORWARD -i "$selected_lan_interface" -o "$wireguard_interface" -m state --state ESTABLISHED,RELATED -j ACCEPT
+        # Règles de forwarding
+        sudo iptables -A FORWARD -i "$wireguard_interface" -o "$selected_lan_interface" -j ACCEPT
+        sudo iptables -A FORWARD -i "$selected_lan_interface" -o "$wireguard_interface" -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+        # Sauvegarder la configuration
+        sudo apt-get install -y iptables-persistent
+        sudo netfilter-persistent save
+    }
+
+    # Fonction de diagnostic détaillé
+    verify_network_configuration() {
+        echo -e "\n${CYAN}Diagnostic réseau détaillé :${NC}"
+        
+        # Informations réseau complètes
+        echo -e "${YELLOW}Configuration IP :${NC}"
+        ip addr show
+        
+        echo -e "\n${YELLOW}Routes :${NC}"
+        ip route show
+        
+        echo -e "\n${YELLOW}Règles iptables (Filter) :${NC}"
+        sudo iptables -L -n -v
+        
+        echo -e "\n${YELLOW}Règles iptables (NAT) :${NC}"
+        sudo iptables -t nat -L -n -v
+        
+        # Test de connectivité
+        echo -e "\n${YELLOW}Test de connectivité :${NC}"
+        if ping -c 4 192.168.1.1 > /dev/null 2>&1; then
+            echo -e "${GREEN}Connectivité à la passerelle : OK${NC}"
+        else
+            echo -e "${RED}Connectivité à la passerelle : ÉCHEC${NC}"
+        fi
+    }
+
+    # Exécution des configurations
+    configure_network
+    verify_network_configuration
 
     # Sauvegarder la configuration
-    sudo apt-get install -y iptables-persistent
-    sudo netfilter-persistent save
+    mkdir -p "$HOME/vpn_config"
+    cat > "$HOME/vpn_config/network_config" << EOL
+LAN_INTERFACE=$selected_lan_interface
+LAN_IP=$lan_ip
+LAN_NETWORK=$lan_network
+VPN_INTERFACE=$wireguard_interface
+VPN_IP=$wireguard_ip
+VPN_NETWORK=$wireguard_network
+EOL
 
-    # Confirmation
-    echo -e "\n${GREEN}Configuration terminée :${NC}"
-    echo "Réseau LAN : $lan_network"
-    echo "Interface LAN : $selected_lan_interface"
-    echo "Réseau Wireguard : $wireguard_network"
-    echo "Interface Wireguard : $wireguard_interface"
-
-    # Vérification finale
-    echo -e "\n${YELLOW}Vérification des routes :${NC}"
-    ip route show
-
-    echo -e "\n${YELLOW}Vérification des règles iptables :${NC}"
-    sudo iptables -L -n -v
+    # Confirmation finale
+    echo -e "\n${GREEN}Configuration terminée avec succès.${NC}"
 }
 
 step11() {
