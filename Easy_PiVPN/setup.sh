@@ -414,94 +414,114 @@ EOL
     echo "Statut             : Routage et NAT configurés"
 }
 
-# Étape 11 : Configuration du NAT et accès à l'interface web
 step11() {
-  echo -e "\n${GRAY_BLUE}=== Étape 11 : Configuration du NAT routeur et accès à l'interface web ===${NC}"
-  
-  # Identifier les passerelles réseau
-  echo -e "${LIGHT_BLUE}Passerelles réseau actuelles :${NC}"
-  gateways=$(ip route | grep default)
-  
-  if [ -z "$gateways" ]; then
-    echo "Aucune passerelle réseau détectée."
-    return 1
-  fi
-  
-  # Afficher les passerelles
-  echo "$gateways"
-  
-  # Récupérer l'adresse IP de la passerelle
-  gateway_ip=$(ip route | grep default | awk '{print $3}')
-  
-  # Récupérer l'interface réseau principale
-  main_interface=$(ip route | grep default | awk '{print $5}')
-  
-  # Récupérer l'adresse IP locale
-  local_ip=$(ip addr show "$main_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-  
-  # Vérifier la configuration PiVPN
-  pivpn_port=$(grep "port " /etc/openvpn/server.conf | awk '{print $2}')
-  
-  if [ -z "$pivpn_port" ]; then
-    echo "Impossible de déterminer le port PiVPN."
-    pivpn_port="NUMÉRO_DE_PORT"
-  fi
-  
-  # Afficher les informations de configuration
-  echo -e "\n${LIGHT_BLUE}Informations de configuration :${NC}"
-  echo "Passerelle     : $gateway_ip"
-  echo "Interface      : $main_interface"
-  echo "IP locale      : $local_ip"
-  echo "Port PiVPN     : $pivpn_port"
-  
-  # Explication de la configuration NAT
-  echo -e "\n${GRAY_BLUE}Configuration NAT requise :${NC}"
-  echo "1. Accédez à l'interface web de votre routeur"
-  echo "2. Naviguez dans les paramètres de redirection de port (Port Forwarding ou NAT)"
-  echo "3. Créez une nouvelle règle de redirection avec les paramètres suivants :"
-  echo "   - Port externe : $pivpn_port"
-  echo "   - Port interne : $pivpn_port"
-  echo "   - Adresse IP interne : $local_ip"
-  echo "   - Protocole : UDP"
-  
-  # Attente de confirmation
-  read -p "Appuyez sur Entrée pour ouvrir l'interface web du routeur..."
-  
-  # Ouvrir l'interface web du routeur
-  xdg-open "http://$gateway_ip"
-  
-  # Attente de validation
-  while true; do
-    read -p "Avez-vous configuré la règle NAT sur le routeur ? (y/n) : " nat_config
+    echo -e "\n${CYAN}=== Configuration du NAT et accès réseau ===${NC}"
     
-    case "$nat_config" in
-      [Yy]|"")
-        echo "Configuration NAT confirmée."
-        break
-        ;;
-      [Nn])
-        echo "Veuillez configurer la règle NAT avant de continuer."
-        read -p "Appuyez sur Entrée pour réessayer..."
-        xdg-open "http://$gateway_ip"
-        ;;
-      *)
-        echo "Réponse invalide. Utilisez O ou N."
-        ;;
-    esac
-  done
-  
-  # Sauvegarde des informations de configuration
-  mkdir -p "$HOME/vpn_config"
-  cat > "$HOME/vpn_config/nat_port_forwarding" << EOL
+    # Identifier les passerelles réseau
+    echo -e "${BLUE}Détection des passerelles réseau...${NC}"
+    mapfile -t gateways < <(ip route | grep default)
+    
+    if [[ ${#gateways[@]} -eq 0 ]]; then
+        echo -e "${RED}Erreur : Aucune passerelle réseau détectée.${NC}"
+        return 1
+    fi
+    
+    # Récupérer l'adresse IP de la passerelle et l'interface principale
+    gateway_ip=$(ip route | grep default | awk '{print $3}' | head -n 1)
+    main_interface=$(ip route | grep default | awk '{print $5}' | head -n 1)
+    local_ip=$(ip addr show "$main_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+    
+    # Détection du port VPN
+    vpn_port=""
+    vpn_type=""
+    
+    # Vérifier Wireguard en premier
+    wireguard_config_files=(
+        "/etc/wireguard/"*".conf"
+        "$HOME/"*".conf"
+        "/etc/wireguard/wg0.conf"
+    )
+    
+    for config in "${wireguard_config_files[@]}"; do
+        if [[ -f "$config" ]]; then
+            vpn_port=$(grep -m 1 "ListenPort" "$config" | awk '{print $3}')
+            if [[ -n "$vpn_port" ]]; then
+                vpn_type="Wireguard"
+                break
+            fi
+        fi
+    done
+    
+    # Si Wireguard échoue, vérifier OpenVPN
+    if [[ -z "$vpn_port" ]]; then
+        vpn_port=$(grep "port " /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}')
+        if [[ -n "$vpn_port" ]]; then
+            vpn_type="OpenVPN"
+        fi
+    fi
+    
+    # Port par défaut si non trouvé
+    if [[ -z "$vpn_port" ]]; then
+        vpn_port="51820"  # Port Wireguard par défaut
+        vpn_type="Wireguard (par défaut)"
+        echo -e "${YELLOW}Port VPN par défaut utilisé : $vpn_port${NC}"
+    fi
+    
+    # Afficher les informations de configuration
+    echo -e "\n${BLUE}Informations de configuration :${NC}"
+    echo "Passerelle     : $gateway_ip"
+    echo "Interface      : $main_interface"
+    echo "IP locale      : $local_ip"
+    echo "Type VPN       : $vpn_type"
+    echo "Port VPN       : $vpn_port"
+    
+    # Explication de la configuration NAT
+    echo -e "\n${CYAN}Configuration NAT requise :${NC}"
+    echo "1. Accédez à l'interface web de votre routeur"
+    echo "2. Naviguez dans les paramètres de redirection de port"
+    echo "3. Créez une nouvelle règle de redirection :"
+    echo "   - Port externe : $vpn_port"
+    echo "   - Port interne : $vpn_port"
+    echo "   - Adresse IP interne : $local_ip"
+    echo "   - Protocole : UDP"
+    
+    # Ouverture de l'interface du routeur
+    read -p "Appuyez sur Entrée pour ouvrir l'interface web du routeur..." 
+    xdg-open "http://$gateway_ip" 2>/dev/null
+    
+    # Validation de la configuration NAT
+    while true; do
+        read -p "Avez-vous configuré la règle NAT sur le routeur ? (O/n) : " nat_config
+        
+        case "${nat_config,,}" in
+            o|"")
+                echo "Configuration NAT confirmée."
+                break
+                ;;
+            n)
+                echo "Veuillez configurer la règle NAT avant de continuer."
+                read -p "Appuyez sur Entrée pour réessayer..."
+                xdg-open "http://$gateway_ip" 2>/dev/null
+                ;;
+            *)
+                echo "Réponse invalide. Utilisez O ou N."
+                ;;
+        esac
+    done
+    
+    # Sauvegarde des informations de configuration
+    mkdir -p "$HOME/vpn_config"
+    cat > "$HOME/vpn_config/nat_port_forwarding" << EOL
 GATEWAY_IP=$gateway_ip
 MAIN_INTERFACE=$main_interface
 LOCAL_IP=$local_ip
-PIVPN_PORT=$pivpn_port
+VPN_TYPE=$vpn_type
+VPN_PORT=$vpn_port
 EOL
-  
-  echo -e "\n${LIGHT_BLUE}Configuration NAT terminée.${NC}"
-  echo "Les informations ont été sauvegardées dans $HOME/vpn_config/nat_port_forwarding"
-  echo
+    
+    echo -e "\n${GREEN}Configuration NAT terminée.${NC}"
+    echo "Informations sauvegardées dans $HOME/vpn_config/nat_port_forwarding"
+    echo
 }
 
 # Étape 12 : Gestion des utilisateurs PiVPN
