@@ -493,7 +493,6 @@ EOL
 }
 
 # Étape 12 : Gestion des utilisateurs PiVPN
-# Étape 12 : Gestion des utilisateurs OpenVPN
 step12() {
   echo -e "\n${GRAY_BLUE}=== Étape 12 : Gestion des utilisateurs OpenVPN ===${NC}"
   
@@ -504,146 +503,289 @@ step12() {
     return 1
   fi
 
-  # Fonction utilitaire pour envoyer un message Discord
+  # Fonction pour envoyer un message sur Discord
   send_discord_message() {
     local message="$1"
-    local file_path="$2"
     local webhook_file="$HOME/vpn_config/discord_webhook.txt"
+    local file_path="$2"
 
-    if [ ! -f "$webhook_file" ]; then
-      echo "Webhook Discord non configuré."
-      return 1
-    fi
-
-    local discord_webhook=$(cat "$webhook_file")
-    
-    if [ -n "$file_path" ] && [ -f "$file_path" ]; then
-      curl -F "payload_json={\"content\":\"$message\"}" \
-           -F "file=@$file_path" \
-           "$discord_webhook"
+    if [ -f "$webhook_file" ]; then
+      local discord_webhook=$(cat "$webhook_file")
+      
+      if [ -n "$file_path" ] && [ -f "$file_path" ]; then
+        # Correction du chemin du fichier
+        local absolute_file_path=$(realpath "$file_path")
+        
+        # Envoi avec fichier
+        curl -F "payload_json={\"content\":\"$message\"}" \
+             -F "file=@$absolute_file_path" \
+             "$discord_webhook"
+      else
+        # Envoi simple du message
+        curl -X POST "$discord_webhook" \
+             -H "Content-Type: application/json" \
+             -d "{\"content\":\"$message\"}"
+      fi
     else
-      curl -X POST "$discord_webhook" \
-           -H "Content-Type: application/json" \
-           -d "{\"content\":\"$message\"}"
+      echo "Fichier webhook Discord non trouvé."
     fi
   }
-
-  # Déterminer le répertoire des configurations
-  OVPN_DIR="$HOME/ovpns"
   
-  # Créer le répertoire s'il n'existe pas
-  mkdir -p "$OVPN_DIR"
-
-  # Menu principal de gestion
+  # Menu de gestion des utilisateurs
   while true; do
     echo -e "\n${LIGHT_BLUE}Options de gestion des utilisateurs OpenVPN :${NC}"
-    echo "1. Ajouter un utilisateur"
-    echo "2. Lister les utilisateurs"
+    echo "1. Ajouter un nouvel utilisateur"
+    echo "2. Lister les utilisateurs existants"
     echo "3. Supprimer un utilisateur"
-    echo "4. Exporter configuration"
-    echo "0. Retour"
+    echo "4. Exporter la configuration d'un utilisateur"
+    echo "0. Retour au menu principal"
     
-    read -p "Votre choix : " choice
-
-    case "$choice" in
+    read -p "Votre choix : " user_choice
+    
+    case "$user_choice" in
       1)
-        # Ajouter un utilisateur
-        read -p "Nom du nouvel utilisateur : " username
-        
-        if [[ ! "$username" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-          echo "Nom d'utilisateur invalide."
-          continue
-        fi
-
-        if [ -f "$OVPN_DIR/$username.ovpn" ]; then
-          echo "Utilisateur existant."
-          continue
-        fi
-
-        sudo pivpn -a -n "$username"
-        
-        user_config="$OVPN_DIR/$username.ovpn"
-        if [ -f "$user_config" ]; then
-          send_discord_message "Nouvel utilisateur VPN : $username" "$user_config"
-        fi
+        # Ajouter un nouvel utilisateur
+        while true; do
+          read -p "Entrez le nom d'utilisateur (sans espaces) : " new_user
+          
+          # Validation du nom d'utilisateur
+          if [[ "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            # Vérifier si l'utilisateur existe déjà
+            if [ -f "$HOME/ovpns/$new_user.ovpn" ]; then
+              echo -e "${GRAY_BLUE}Un utilisateur avec ce nom existe déjà.${NC}"
+              read -p "Voulez-vous choisir un autre nom ? (O/n) : " retry_choice
+              
+              if [[ "$retry_choice" =~ ^[Nn]$ ]]; then
+                break
+              fi
+            else
+              # Création de l'utilisateur
+              echo "Création de l'utilisateur $new_user..."
+              sudo pivpn -a -n "$new_user"
+              
+              # Attendre que la création soit terminée
+              sleep 2
+              
+              user_config="$HOME/ovpns/$new_user.ovpn"
+              
+              if [ -f "$user_config" ]; then
+                # Envoi du message et du fichier sur Discord
+                send_discord_message "Nouvel utilisateur VPN créé : $new_user" "$user_config"
+                
+                echo -e "\n${LIGHT_BLUE}Fichier de configuration créé et envoyé sur Discord.${NC}"
+              else
+                echo -e "${GRAY_BLUE}Erreur : Le fichier de configuration n'a pas été créé.${NC}"
+              fi
+              
+              break
+            fi
+          else
+            echo "Nom d'utilisateur invalide. Utilisez uniquement des lettres, chiffres, _ et -."
+          fi
+        done
         ;;
-
+      
       2)
-        # Lister les utilisateurs
-        echo -e "\n${LIGHT_BLUE}Utilisateurs OpenVPN :${NC}"
-        users=$(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+        # Lister les utilisateurs existants
+        echo -e "\n${LIGHT_BLUE}Utilisateurs OpenVPN existants :${NC}"
+        existing_users=$(ls "$HOME/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//')
+        echo "$existing_users"
         
-        if [ -z "$users" ]; then
-          echo "Aucun utilisateur."
-        else
-          echo "$users"
-          send_discord_message "Liste des utilisateurs VPN :\n$users"
-        fi
+        # Envoi de la liste sur Discord
+        send_discord_message "Liste des utilisateurs VPN :\n$existing_users"
         ;;
-
+      
       3)
         # Supprimer un utilisateur
-        mapfile -t users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+        echo -e "\n${LIGHT_BLUE}Supprimer un utilisateur OpenVPN :${NC}"
+        existing_users=($(ls "$HOME/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
         
-        if [ ${#users[@]} -eq 0 ]; then
-          echo "Aucun utilisateur à supprimer."
+        if [ ${#existing_users[@]} -eq 0 ]; then
+          echo "Aucun utilisateur existant à supprimer."
           continue
         fi
-
-        echo "Utilisateurs :"
-        for i in "${!users[@]}"; do
-          echo "$((i+1)). ${users[i]}"
-        done
-
-        read -p "Sélectionner un utilisateur à supprimer : " user_index
         
-        if [[ "$user_index" =~ ^[0-9]+$ ]] && 
-           [ "$user_index" -ge 1 ] && 
-           [ "$user_index" -le "${#users[@]}" ]; then
+        echo "Utilisateurs existants :"
+        for i in "${!existing_users[@]}"; do
+          echo "$((i+1)). ${existing_users[i]}"
+        done
+        
+        while true; do
+          read -p "Sélectionnez l'utilisateur à supprimer (1-${#existing_users[@]}) : " delete_choice
           
-          user_to_delete="${users[$((user_index-1))]}"
-          sudo pivpn -r "$user_to_delete"
-          send_discord_message "Utilisateur VPN supprimé : $user_to_delete"
-        fi
+          if [[ "$delete_choice" =~ ^[0-9]+$ ]] && 
+             [ "$delete_choice" -ge 1 ] && 
+             [ "$delete_choice" -le "${#existing_users[@]}" ]; then
+            
+            user_to_delete="${existing_users[$((delete_choice-1))]}"
+            echo "Suppression de l'utilisateur $user_to_delete..."
+            sudo pivpn -r "$user_to_delete"
+            
+            # Envoi d'une notification sur Discord
+            send_discord_message "Utilisateur VPN supprimé : $user_to_delete"
+            
+            echo "Utilisateur $user_to_delete supprimé."
+            break
+          else
+            echo "Choix invalide. Veuillez sélectionner un numéro valide."
+          fi
+        done
         ;;
-
+      
       4)
-        # Exporter configuration
-        mapfile -t users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+        # Exporter la configuration d'un utilisateur
+        echo -e "\n${LIGHT_BLUE}Exporter la configuration d'un utilisateur OpenVPN :${NC}"
+        existing_users=($(ls "$HOME/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
         
-        if [ ${#users[@]} -eq 0 ]; then
-          echo "Aucun utilisateur à exporter."
+        if [ ${#existing_users[@]} -eq 0 ]; then
+          echo "Aucun utilisateur existant à exporter."
           continue
         fi
-
-        echo "Utilisateurs :"
-        for i in "${!users[@]}"; do
-          echo "$((i+1)). ${users[i]}"
-        done
-
-        read -p "Sélectionner un utilisateur à exporter : " user_index
         
-        if [[ "$user_index" =~ ^[0-9]+$ ]] && 
-           [ "$user_index" -ge 1 ] && 
-           [ "$user_index" -le "${#users[@]}" ]; then
+        echo "Utilisateurs existants :"
+        for i in "${!existing_users[@]}"; do
+          echo "$((i+1)). ${existing_users[i]}"
+        done
+        
+        while true; do
+          read -p "Sélectionnez l'utilisateur à exporter (1-${#existing_users[@]}) : " export_choice
           
-          user_to_export="${users[$((user_index-1))]}"
-          export_path="$HOME/vpn_config/${user_to_export}_config.ovpn"
-          cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
-          
-          send_discord_message "Configuration exportée : $user_to_export" "$export_path"
-        fi
+          if [[ "$export_choice" =~ ^[0-9]+$ ]] && 
+             [ "$export_choice" -ge 1 ] && 
+             [ "$export_choice" -le "${#existing_users[@]}" ]; then
+            
+            user_to_export="${existing_users[$((export_choice-1))]}"
+            export_path="$HOME/vpn_config/${user_to_export}_config.ovpn"
+            cp "$HOME/ovpns/$user_to_export.ovpn" "$export_path"
+            
+            # Envoi d'une notification sur Discord avec le fichier exporté
+            send_discord_message "Configuration de l'utilisateur exportée : $user_to_export" "$export_path"
+            echo "Configuration de l'utilisateur $user_to_export exportée vers $export_path ."
+            break
+          else
+            echo "Choix invalide. Veuillez sélectionner un numéro valide."
+          fi
+        done
         ;;
-
-      0) break ;;
-      *) echo "Choix invalide." ;;
+      
+      0)
+        # Retour au menu principal
+        break
+        ;;
+      
+      *)
+        echo "Choix invalide. Réessayez."
+        ;;
     esac
+    
+    # Pause pour visualisation
+    read -p "Appuyez sur Entrée pour continuer..."
   done
-
-  return 0
+  
+  # Sauvegarde des utilisateurs
+  mkdir -p "$HOME/vpn_config"
+  ls "$HOME/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "$HOME/vpn_config/vpn_users"
+  
+  echo -e "\n${LIGHT_BLUE}Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users${NC}"
+  send_discord_message "Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users"
+  echo
 }
 
-
+# Étape 13 : Mise à jour de l'adresse IP publique PiVPN
+step13() {
+  echo -e "\n${GRAY_BLUE}=== Étape 13 : Mise à jour de l'adresse IP publique PiVPN ===${NC}"
+  
+  # Vérifier si PiVPN est installé
+  if ! command -v pivpn &> /dev/null; then
+    echo -e "${LIGHT_BLUE}PiVPN n'est pas installé.${NC}"
+    echo "Veuillez d'abord installer PiVPN à l'étape 9."
+    return 1
+  fi
+  
+  # Récupérer l'adresse IP publique actuelle
+  current_public_ip=$(curl -s ifconfig.me)
+  
+  # Vérifier la configuration actuelle de PiVPN
+  pivpn_config="/etc/wireguard/wg0.conf"
+  
+  if [ ! -f "$pivpn_config" ]; then
+    echo -e "${GRAY_BLUE}Fichier de configuration PiVPN introuvable.${NC}"
+    return 1
+  fi
+  
+  # Extraire l'adresse IP publique actuelle de la configuration
+  old_public_ip=$(grep "Endpoint" "$pivpn_config" | awk '{print $3}' | cut -d':' -f1)
+  
+  echo -e "${LIGHT_BLUE}Informations actuelles :${NC}"
+  echo "Adresse IP publique actuelle   : $current_public_ip"
+  echo "Adresse IP configurée dans PiVPN : $old_public_ip"
+  
+  # Comparer les adresses IP
+  if [ "$current_public_ip" == "$old_public_ip" ]; then
+    echo -e "\n${GRAY_BLUE}L'adresse IP publique n'a pas changé.${NC}"
+    read -p "Voulez-vous forcer la mise à jour ? (O/n) : " force_update
+    
+    if [[ ! "$force_update" =~ ^[Oo]$ ]]; then
+      echo "Mise à jour annulée."
+      return 0
+    fi
+  fi
+  
+  # Confirmer la mise à jour
+  read -p "Voulez-vous mettre à jour l'adresse IP publique ? (O/n) : " confirm_update
+  
+  if [[ ! "$confirm_update" =~ ^[Oo]$ ]]; then
+    echo "Mise à jour annulée."
+    return 0
+  fi
+  
+  # Sauvegarder la configuration originale
+  sudo cp "$pivpn_config" "$pivpn_config.bak"
+  
+  # Mettre à jour l'adresse IP dans la configuration du serveur
+  echo "Mise à jour de la configuration PiVPN..."
+  sudo sed -i "s/$old_public_ip/$current_public_ip/g" "$pivpn_config"
+  
+  # Mettre à jour les configurations des clients
+  client_configs_dir="/etc/wireguard/configs"
+  
+  echo "Mise à jour des configurations des clients..."
+  for client_config in "$client_configs_dir"/*.conf; do
+    if [ -f "$client_config" ]; then
+      sudo sed -i "s/$old_public_ip/$current_public_ip/g" "$client_config"
+      echo "Mise à jour de ${client_config##*/}"
+    fi
+  done
+  
+  # Redémarrer le service Wireguard
+  echo "Redémarrage du service Wireguard..."
+  sudo systemctl restart wg-quick@wg0
+  
+  # Sauvegarde des informations de mise à jour
+  mkdir -p "$HOME/vpn_config"
+  cat > "$HOME/vpn_config/ip_update_log" << EOL
+Date de mise à jour : $(date)
+Ancienne adresse IP : $old_public_ip
+Nouvelle adresse IP : $current_public_ip
+EOL
+  
+  echo -e "\n${LIGHT_BLUE}Mise à jour terminée :${NC}"
+  echo "- Adresse IP mise à jour dans la configuration serveur"
+  echo "- Configurations des clients mises à jour"
+  echo "- Service Wireguard redémarré"
+  echo "- Journal de mise à jour sauvegardé dans $HOME/vpn_config/ip_update_log"
+  
+  # Afficher le QR code pour les clients existants
+  echo -e "\n${LIGHT_BLUE}Codes QR des configurations clients :${NC}"
+  for client_config in "$client_configs_dir"/*.conf; do
+    if [ -f "$client_config" ]; then
+      client_name=$(basename "$client_config" .conf)
+      echo "Configuration pour $client_name :"
+      sudo pivpn -qr "$client_name"
+      echo
+    fi
+  done
+}
 
 # Fonction pour gérer les étapes et le choix d'action
 run_step() {
@@ -675,6 +817,7 @@ display_steps() {
   echo "10. Configurer routage et NAT VPN sur Raspberry Pi"
   echo "11. Configurer NAT et port forwarding sur routeur"
   echo "12. Gérer les utilisateurs PiVPN"
+  echo "13. Mettre à jour manuellement l'adresse IP publique PiVPN"
   echo
 }
 
@@ -683,24 +826,24 @@ main_menu_flow() {
   main_menu
   case "$main_choice" in
     1)
-      # Mode automatique
-      for ((i=0; i<=12; i++)); do
-        if ! "step$i"; then
-          read -p "L'étape $i a échoué. Continuer ? (O/n) : " continue_choice
-          [[ ! "$continue_choice" =~ ^[Oo]$ ]] && break
-        fi
+      # Démarre toutes les étapes de setup
+      for i in {0..12}; do
+        "step$i" || continue
+        run_step || return
       done
       ;;
     2)
-      # Mode sélection d'étape
+      # Affiche la liste des étapes et permet de choisir une étape spécifique
       display_steps
-      read -p "Sélectionner une étape (0-12) : " step
-      "step$step"
+      read -p "À quelle étape souhaitez-vous aller (0-13) ? : " specific_step
+      echo
+      "step$specific_step" || continue
+      run_step
       ;;
-    0) exit 0 ;;
-    *) main_menu_flow ;;
+    0) echo "Sortie du script."; exit 0 ;;
+    *) echo "Choix invalide. Retour au menu principal..."; main_menu_flow ;;
   esac
 }
 
 # Lancement du script
-main_menu_flow
+main_menu_flow 
