@@ -22,7 +22,7 @@ main_menu() {
 # Fonction pour afficher les choix à chaque étape (en bleu clair)
 step_menu() {
   echo
-  echo -e "${LIGHT_BLUE}[C]ontinuer à l'étape suivante | [S]topper le script | [R]efaire l'étape précédente | [M]enu principal${NC}"
+  echo -e "${LIGHT_BLUE}[C]ontinuer | [S]top| [R]efaire l'étape précédente | [M]enu principal${NC}"
 
   echo
   read -p "Choix : " step_choice
