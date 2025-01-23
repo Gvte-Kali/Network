@@ -9,8 +9,31 @@ LOG_FILE="$VPN_CONFIG_DIR/ip_change_log.txt"
 # Créer le répertoire de logs s'il n'existe pas
 mkdir -p "$VPN_CONFIG_DIR"
 
-# Récupérer l'adresse IP publique actuelle
-current_public_ip=$(curl -s ifconfig.me)
+# Fonction pour obtenir l'adresse IPv4 publique
+get_ipv4() {
+    # Plusieurs méthodes pour obtenir l'IPv4
+    local ipv4_methods=(
+        "curl -4 -s ifconfig.me"
+        "curl -4 -s ipv4.icanhazip.com"
+        "curl -4 -s ipinfo.io/ip"
+        "dig +short myip.opendns.com @resolver1.opendns.com"
+    )
+    
+    for method in "${ipv4_methods[@]}"; do
+        local ip=$(${method})
+        # Validation basique de l'IPv4
+        if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+    
+    echo "Impossible de déterminer l'IPv4" >> "$LOG_FILE"
+    return 1
+}
+
+# Récupérer l'adresse IP publique IPv4 actuelle
+current_public_ip=$(get_ipv4)
 
 # Vérifier si le fichier de configuration PiVPN existe
 if [ ! -f "$PIVPN_CONFIG" ]; then
@@ -18,8 +41,8 @@ if [ ! -f "$PIVPN_CONFIG" ]; then
     exit 1
 fi
 
-# Extraire l'adresse IP publique actuelle de la configuration
-old_public_ip=$(grep "Endpoint" "$PIVPN_CONFIG" | awk '{print $3}' | cut -d':' -f1)
+# Extraire l'adresse IPv4 publique actuelle de la configuration
+old_public_ip=$(grep "Endpoint" "$PIVPN_CONFIG" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}')
 
 # Vérifier si l'adresse IP a changé
 if [ "$current_public_ip" == "$old_public_ip" ]; then
@@ -60,7 +83,7 @@ if [ -f "$VPN_CONFIG_DIR/discord_webhook.txt" ]; then
     discord_webhook=$(cat "$VPN_CONFIG_DIR/discord_webhook.txt")
     
     # Créer un message avec les fichiers de configuration
-    message="New IP Address : $current_public_ip, here are the new vpn user files."
+    message="New IPv4 Address: $current_public_ip, here are the new vpn user files."
     
     # Préparer les fichiers pour l'envoi
     zip_file="$temp_config_dir/vpn_user_configs.zip"
