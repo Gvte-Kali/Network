@@ -332,146 +332,86 @@ step9() {
 
 # Étape 10 : Configuration du routage et NAT entre interfaces VPN et réseau physique
 step10() {
-  echo -e "\n${GRAY_BLUE}=== Étape 10 : Configuration du routage et NAT entre interfaces sur Raspberry Pi ===${NC}"
-  
-  echo -e "${LIGHT_BLUE}Objectif :${NC} Établir une connexion réseau entre votre interface VPN Wireguard et votre interface réseau physique."
-  echo "Cette configuration permettra le routage et la traduction d'adresses (NAT)."
-  echo
-  
-  # Détection des interfaces Wireguard
-  wireguard_interfaces=($(ip -br link show | awk '$1 ~ /^wg/ {print $1}'))
-  
-  if [ ${#wireguard_interfaces[@]} -eq 0 ]; then
-    echo -e "${GRAY_BLUE}Erreur : Aucune interface Wireguard détectée.${NC}"
-    echo "Assurez-vous d'avoir configuré un tunnel Wireguard avant cette étape."
-    return 1
-  fi
-  
-  # Sélection de l'interface Wireguard
-  echo "Interfaces Wireguard disponibles :"
-  for i in "${!wireguard_interfaces[@]}"; do
-    echo "$((i+1)). ${wireguard_interfaces[i]}"
-  done
-  
-  while true; do
-    read -p "Sélectionnez l'interface Wireguard (1-${#wireguard_interfaces[@]}) : " wg_choice
+    echo -e "\n${CYAN}=== Configuration du routage et NAT Wireguard ===${NC}"
     
-    if [[ "$wg_choice" =~ ^[0-9]+$ ]] && 
-       [ "$wg_choice" -ge 1 ] && 
-       [ "$wg_choice" -le "${#wireguard_interfaces[@]}" ]; then
-      
-      wireguard_interface="${wireguard_interfaces[$((wg_choice-1))]}"
-      break
-    else
-      echo "Choix invalide. Veuillez sélectionner un numéro valide."
+    # Détection des interfaces Wireguard
+    mapfile -t wireguard_interfaces < <(ip -br link show | awk '$1 ~ /^wg/ {print $1}')
+    
+    if [[ ${#wireguard_interfaces[@]} -eq 0 ]]; then
+        echo -e "${RED}Erreur : Aucune interface Wireguard détectée.${NC}"
+        return 1
     fi
-  done
-  
-  # Vérification des règles iptables existantes
-  echo -e "\n${LIGHT_BLUE}Vérification des règles iptables existantes :${NC}"
-  existing_nat_rules=$(sudo iptables -t nat -L POSTROUTING -v -n | grep -E "$wireguard_interface|MASQUERADE")
-  
-  if [ -n "$existing_nat_rules" ]; then
-    echo -e "${GRAY_BLUE}Règles iptables existantes détectées :${NC}"
-    echo "$existing_nat_rules"
     
-    # Option de suppression des règles existantes
-    while true; do
-      read -p "Voulez-vous supprimer ces règles ? (O/n) : " remove_choice
-      case "$remove_choice" in
-        [Oo]|"")
-          # Supprimer toutes les règles MASQUERADE pour cette interface
-          sudo iptables -t nat -F POSTROUTING
-          sudo iptables -t nat -D POSTROUTING -j MASQUERADE 2>/dev/null
-          
-          # Supprimer les règles spécifiques à l'interface
-          sudo iptables -t nat -D POSTROUTING -o "$wireguard_interface" -j MASQUERADE 2>/dev/null
-          
-          echo "Règles iptables supprimées."
-          break
-          ;;
-        [Nn])
-          echo "Conservation des règles existantes."
-          break
-          ;;
-        *)
-          echo "Choix invalide. Répondez par O ou N."
-          ;;
-      esac
-    done
-  else
-    echo "Aucune règle iptables existante pour cette interface."
-  fi
-  
-  # Détection des interfaces physiques
-  physical_interfaces=($(ip -br link show | awk '$2 == "UP" && $1 !~ /^(lo|wg|tun|docker|br)/ {print $1}'))
-  
-  echo -e "\n${LIGHT_BLUE}Interfaces réseau physiques disponibles :${NC}"
-  for i in "${!physical_interfaces[@]}"; do
-    echo "$((i+1)). ${physical_interfaces[i]}"
-  done
-  
-  # Sélection de l'interface physique
-  while true; do
-    read -p "Sélectionnez l'interface physique pour le routage (1-${#physical_interfaces[@]}) : " phys_choice
-    
-    if [[ "$phys_choice" =~ ^[0-9]+$ ]] && 
-       [ "$phys_choice" -ge 1 ] && 
-       [ "$phys_choice" -le "${#physical_interfaces[@]}" ]; then
-      
-      physical_interface="${physical_interfaces[$((phys_choice-1))]}"
-      break
+    # Sélection automatique ou manuelle de l'interface
+    if [[ ${#wireguard_interfaces[@]} -eq 1 ]]; then
+        wireguard_interface="${wireguard_interfaces[0]}"
+        echo -e "${GREEN}Interface Wireguard détectée : $wireguard_interface${NC}"
     else
-      echo "Choix invalide. Veuillez sélectionner un numéro valide."
+        echo "Interfaces Wireguard disponibles :"
+        for i in "${!wireguard_interfaces[@]}"; do
+            echo "$((i+1)). ${wireguard_interfaces[i]}"
+        done
+        
+        read -p "Choisissez l'interface (1-${#wireguard_interfaces[@]}) : " wg_choice
+        wireguard_interface="${wireguard_interfaces[$((wg_choice-1))]}"
     fi
-  done
-  
-  # Demande du réseau Wireguard
-  while true; do
-    read -p "Entrez le réseau Wireguard (format CIDR, e.g., 10.0.0.0/24) : " wireguard_network
     
-    if [[ "$wireguard_network" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]]; then
-      break
-    else
-      echo "Format de réseau invalide. Utilisez le format x.x.x.x/xx"
+    # Détection automatique du réseau Wireguard
+    wireguard_network=$(sudo wg show "$wireguard_interface" | grep -oP 'allowed ips: \K[^/]+[/\d]+' | head -n 1)
+    
+    if [[ -z "$wireguard_network" ]]; then
+        echo -e "${YELLOW}Détection automatique du réseau impossible.${NC}"
+        read -p "Entrez manuellement le réseau Wireguard (CIDR) : " wireguard_network
     fi
-  done
-  
-  # Configuration du routage et NAT
-  echo -e "\n${LIGHT_BLUE}Configuration du routage et NAT :${NC}"
-  
-  # Activer le forwarding IP
-  sudo sysctl -w net.ipv4.ip_forward=1
-  sudo bash -c "echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf"
-  
-  # Configurer le NAT avec masquerade
-  sudo iptables -t nat -A POSTROUTING -s "$wireguard_network" -o "$physical_interface" -j MASQUERADE
-  
-  # Sauvegarder les règles iptables de manière permanente
-  sudo apt-get install -y iptables-persistent
-  sudo netfilter-persistent save
-  
-  # Sauvegarde de la configuration
-  mkdir -p "$HOME/vpn_config"
-  cat > "$HOME/vpn_config/nat_routing_config" << EOL
+    
+    # Détection des interfaces physiques
+    mapfile -t physical_interfaces < <(ip -br link show | awk '$2 == "UP" && $1 !~ /^(lo|wg|tun|docker|br)/ {print $1}')
+    
+    # Sélection automatique ou manuelle de l'interface physique
+    if [[ ${#physical_interfaces[@]} -eq 1 ]]; then
+        physical_interface="${physical_interfaces[0]}"
+        echo -e "${GREEN}Interface physique détectée : $physical_interface${NC}"
+    else
+        echo "Interfaces physiques disponibles :"
+        for i in "${!physical_interfaces[@]}"; do
+            echo "$((i+1)). ${physical_interfaces[i]}"
+        done
+        
+        read -p "Choisissez l'interface physique (1-${#physical_interfaces[@]}) : " phys_choice
+        physical_interface="${physical_interfaces[$((phys_choice-1))]}"
+    fi
+    
+    # Configuration du routage et NAT
+    echo -e "\n${BLUE}Configuration du routage et NAT...${NC}"
+    
+    # Activer le forwarding IP
+    sudo sysctl -w net.ipv4.ip_forward=1
+    sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+    
+    # Nettoyer les règles NAT existantes
+    sudo iptables -t nat -F POSTROUTING
+    
+    # Configurer le NAT avec masquerade
+    sudo iptables -t nat -A POSTROUTING -s "$wireguard_network" -o "$physical_interface" -j MASQUERADE
+    
+    # Sauvegarder les règles iptables
+    sudo apt-get install -y iptables-persistent
+    sudo netfilter-persistent save
+    
+    # Sauvegarder la configuration
+    mkdir -p "$HOME/vpn_config"
+    cat > "$HOME/vpn_config/nat_routing_config" << EOL
 WIREGUARD_INTERFACE=$wireguard_interface
 PHYSICAL_INTERFACE=$physical_interface
 WIREGUARD_NETWORK=$wireguard_network
 EOL
-  
-  echo -e "\n${GRAY_BLUE}Résumé de la configuration :${NC}"
-  echo "Interface Wireguard : $wireguard_interface"
-  echo "Interface physique  : $physical_interface"
-  echo "Réseau Wireguard   : $wireguard_network"
-  echo "Statut             : Routage et NAT configurés"
-  
-  echo -e "\n${LIGHT_BLUE}IMPORTANT :${NC}"
-  echo "- Le routage entre les interfaces est maintenant activé"
-  echo "- La traduction d'adresses (NAT) est configurée"
-  echo "- Les connexions du réseau Wireguard seront masquerades sur l'interface physique"
-  
-  echo "Configuration terminée."
-  echo
+    
+    # Résumé
+    echo -e "\n${GREEN}Configuration terminée :${NC}"
+    echo "Interface Wireguard : $wireguard_interface"
+    echo "Interface physique  : $physical_interface"
+    echo "Réseau Wireguard   : $wireguard_network"
+    echo "Statut             : Routage et NAT configurés"
 }
 
 # Étape 11 : Configuration du NAT et accès à l'interface web
