@@ -311,7 +311,7 @@ step8() {
   
   # Télécharger le script de mise à jour IP
   update_script="$HOME/vpn_config/update_pivpn_ip.sh"
-  wget -O "$update_script" "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/update_pivpn_ip.sh"
+  wget -O "$update_script" "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/discord_public_ip_update.sh"
   chmod +x "$update_script"
   
   # Créer un cronjob pour exécuter le script toutes les 10 minutes
