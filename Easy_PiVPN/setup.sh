@@ -332,70 +332,37 @@ step9() {
 
 # Étape 10 : Configuration du routage et NAT entre interfaces VPN et réseau physique
 step10() {
-    echo -e "${LIGHT_BLUE}Configuration LAN <-> VPN avec PiVPN${NC}"
+    echo -e "\n${CYAN}=== Configuration OpenVPN pour accès au LAN ===${NC}"
 
-    # Vérification de l'installation de WireGuard
-    if ! command -v wg > /dev/null; then
-        echo -e "${GRAY_BLUE}WireGuard n'est pas installé. Installez-le avec PiVPN.${NC}"
-        exit 1
-    fi
+    # Identifier les interfaces réseau
+    interfaces=($(ip -o -f inet addr show | awk '{print $2}'))
+    echo -e "${YELLOW}Interfaces réseau disponibles :${NC}"
+    for i in "${!interfaces[@]}"; do
+        echo "$((i + 1)). ${interfaces[i]}"
+    done
 
-    # Sélection des interfaces
-    echo -e "${LIGHT_BLUE}Liste des interfaces réseau disponibles :${NC}"
-    ip -br link show | awk '{print NR" - "$1}'
-
-    read -p "${GRAY_BLUE}Entrez le numéro de l'interface LAN : ${NC}" LAN_INDEX
-    read -p "${GRAY_BLUE}Entrez le numéro de l'interface VPN : ${NC}" VPN_INDEX
-
-    LAN_INTERFACE=$(ip -br link show | awk "NR==$LAN_INDEX {print \$1}")
-    VPN_INTERFACE=$(ip -br link show | awk "NR==$VPN_INDEX {print \$1}")
-
-    if [[ -z "$LAN_INTERFACE" || -z "$VPN_INTERFACE" ]]; then
-        echo -e "${GRAY_BLUE}Interfaces invalides. Réessayez.${NC}"
-        exit 1
-    fi
-
-    echo -e "${LIGHT_BLUE}Interface LAN : ${LAN_INTERFACE}${NC}"
-    echo -e "${LIGHT_BLUE}Interface VPN : ${VPN_INTERFACE}${NC}"
-
-    # Détection des sous-réseaux
-    LAN_SUBNET=$(ip addr show "$LAN_INTERFACE" | grep -oP '(?<=inet\s)\d+\.\d+\.\d+\.\d+/\d+' | head -1)
-    VPN_SUBNET=$(ip addr show "$VPN_INTERFACE" | grep -oP '(?<=inet\s)\d+\.\d+\.\d+\.\d+/\d+' | head -1)
-
-    if [[ -z "$LAN_SUBNET" || -z "$VPN_SUBNET" ]]; then
-        echo -e "${GRAY_BLUE}Impossible de détecter les sous-réseaux.${NC}"
-        exit 1
-    fi
-
-    echo -e "${LIGHT_BLUE}Réseau LAN : ${LAN_SUBNET}${NC}"
-    echo -e "${LIGHT_BLUE}Réseau VPN : ${VPN_SUBNET}${NC}"
+    # Sélection de l'interface LAN
+    read -p "Sélectionnez l'interface LAN (numéro) : " lan_choice
+    LAN_INTERFACE="${interfaces[$((lan_choice - 1))]}"
+    
+    # Identifier l'interface OpenVPN
+    VPN_INTERFACE="tun0"  # Par défaut pour OpenVPN
+    VPN_NETWORK="10.8.0.0/24"  # Plage IP par défaut d'OpenVPN
 
     # Activer le forwarding IP
-    echo -e "${LIGHT_BLUE}Activation du forwarding IP...${NC}"
     sudo sysctl -w net.ipv4.ip_forward=1
     sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
-    # Configuration des règles iptables
-    echo -e "${LIGHT_BLUE}Mise en place des règles iptables...${NC}"
-    sudo iptables -F
-    sudo iptables -X
-    sudo iptables -t nat -F
-    sudo iptables -t nat -X
-
+    # Configurer iptables pour le NAT
+    sudo iptables -t nat -A POSTROUTING -s "$VPN_NETWORK" -o "$LAN_INTERFACE" -j MASQUERADE
     sudo iptables -A FORWARD -i "$VPN_INTERFACE" -o "$LAN_INTERFACE" -j ACCEPT
-    sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -j ACCEPT
-    sudo iptables -t nat -A POSTROUTING -s "$VPN_SUBNET" -o "$LAN_INTERFACE" -j MASQUERADE
+    sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-    # Sauvegarde des règles
+    # Sauvegarder les règles
     sudo apt-get install -y iptables-persistent
     sudo netfilter-persistent save
 
-    # Relancer WireGuard
-    echo -e "${LIGHT_BLUE}Redémarrage de WireGuard...${NC}"
-    sudo systemctl restart wg-quick@wg0
-
-    echo -e "${LIGHT_BLUE}Configuration terminée.${NC}"
-    echo -e "${GRAY_BLUE}Les clients connectés au VPN auront désormais accès aux hôtes du réseau LAN.${NC}"
+    echo -e "${GREEN}Configuration terminée. Accès au LAN depuis OpenVPN activé.${NC}"
 }
 
 step11() {
