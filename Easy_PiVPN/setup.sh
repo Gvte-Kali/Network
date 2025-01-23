@@ -332,59 +332,118 @@ step9() {
 
 # Étape 10 : Configuration du routage et NAT entre interfaces VPN et réseau physique
 step10() {
-    echo -e "\n${CYAN}=== Configuration du routage réseau VPN vers LAN ===${NC}"
+    # Vérification et installation des dépendances
+    check_and_install_dependencies() {
+        local dependencies=("iptables" "ipcalc" "wireguard-tools")
+        local missing_deps=()
 
-    # Détection automatique des interfaces
-    lan_interface=$(ip route | grep default | awk '{print $5}')
-    vpn_interface=$(ip -br link show | awk '$1 ~ /^wg/ {print $1}')
-    vpn_network=$(ip -o -f inet addr show "$vpn_interface" | awk '{print $4}' | cut -d/ -f1 | xargs ipcalc -n)
+        echo -e "${YELLOW}Vérification des dépendances...${NC}"
 
-    # Affichage des informations
-    echo -e "${GREEN}Interface LAN : $lan_interface${NC}"
-    echo -e "${GREEN}Interface VPN : $vpn_interface${NC}"
-    echo -e "${GREEN}Réseau VPN : $vpn_network${NC}"
+        for dep in "${dependencies[@]}"; do
+            if ! command -v "$dep" &> /dev/null && ! dpkg -s "$dep" &> /dev/null; then
+                missing_deps+=("$dep")
+            fi
+        done
 
-    # Configuration du routage
-    configure_routing() {
+        if [ ${#missing_deps[@]} -gt 0 ]; then
+            echo -e "${RED}Dépendances manquantes : ${missing_deps[*]}${NC}"
+            read -p "Voulez-vous installer ces dépendances ? (o/n) : " install_choice
+            
+            if [[ "$install_choice" == "o" ]]; then
+                sudo apt update
+                sudo apt install -y "${missing_deps[@]}"
+            else
+                echo -e "${RED}Impossible de continuer sans les dépendances.${NC}"
+                return 1
+            fi
+        else
+            echo -e "${GREEN}Toutes les dépendances sont installées.${NC}"
+        fi
+    }
+
+    # Sélection interactive des interfaces
+    select_interfaces() {
+        # Détecter les interfaces réseau
+        echo -e "\n${YELLOW}Interfaces réseau disponibles :${NC}"
+        local interfaces=()
+        local counter=1
+
+        # Récupérer les interfaces actives (excluant lo, wg, etc.)
+        while IFS=: read -r interface ip; do
+            if [[ -n "$interface" && "$interface" != "lo" && 
+                  "$interface" != *"wg"* && 
+                  "$interface" != *"docker"* && 
+                  "$interface" != *"br"* ]]; then
+                interfaces+=("$interface")
+                echo "$counter. $interface : $ip"
+                ((counter++))
+            fi
+        done < <(ip -o -f inet addr show | awk '{print $2":"$4}' | cut -d/ -f1)
+
+        # Sélection de l'interface LAN
+        read -p "Sélectionnez l'interface LAN (numéro) : " lan_choice
+        LAN_INTERFACE="${interfaces[$((lan_choice-1))]}"
+
+        # Détecter l'interface Wireguard
+        VPN_INTERFACE=$(ip -br link show | awk '$1 ~ /^wg/ {print $1}')
+        
+        if [[ -z "$VPN_INTERFACE" ]]; then
+            echo -e "${RED}Erreur : Aucune interface Wireguard détectée.${NC}"
+            return 1
+        fi
+
+        # Récupérer les détails réseau
+        VPN_NETWORK=$(ip -o -f inet addr show "$VPN_INTERFACE" | awk '{print $4}')
+        LAN_NETWORK=$(ip -o -f inet addr show "$LAN_INTERFACE" | awk '{print $4}')
+
+        echo -e "\n${GREEN}Configuration sélectionnée :${NC}"
+        echo "Interface LAN : $LAN_INTERFACE"
+        echo "Interface VPN : $VPN_INTERFACE"
+        echo "Réseau VPN    : $VPN_NETWORK"
+        echo "Réseau LAN    : $LAN_NETWORK"
+    }
+
+    configure_lan_vpn_routing() {
         # Activer le forwarding IP
-        echo -e "\n${YELLOW}Activation du forwarding IP...${NC}"
+        echo -e "\n${YELLOW}Configuration du forwarding IP...${NC}"
         sudo sysctl -w net.ipv4.ip_forward=1
         sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
-        # Configuration NAT
-        echo -e "${YELLOW}Configuration du NAT...${NC}"
+        # Nettoyer les règles existantes
+        echo -e "${YELLOW}Nettoyage des règles iptables...${NC}"
+        sudo iptables -F
+        sudo iptables -X
         sudo iptables -t nat -F
-        sudo iptables -t nat -A POSTROUTING -o "$lan_interface" -s "$vpn_network" -j MASQUERADE
+        sudo iptables -t nat -X
 
-        # Sauvegarder la configuration
+        # Configuration des règles de forwarding
+        echo -e "${YELLOW}Configuration des règles de forwarding...${NC}"
+        sudo iptables -A FORWARD -i "$VPN_INTERFACE" -o "$LAN_INTERFACE" -j ACCEPT
+        sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+        # Configuration NAT
+        echo -e "${YELLOW}Configuration NAT...${NC}"
+        sudo iptables -t nat -A POSTROUTING -s "$VPN_NETWORK" -o "$LAN_INTERFACE" -j MASQUERADE
+
+        # Sauvegarder les règles
+        echo -e "${YELLOW}Sauvegarde des règles iptables...${NC}"
         sudo apt-get install -y iptables-persistent
         sudo netfilter-persistent save
-    }
 
-    # Vérification de la configuration
-    verify_configuration() {
-        echo -e "\n${CYAN}Vérification de la configuration :${NC}"
-        
-        # Routes
-        echo -e "${YELLOW}Routes :${NC}"
+        # Redémarrer le service Wireguard
+        echo -e "${YELLOW}Redémarrage du service Wireguard...${NC}"
+        sudo systemctl restart wg-quick@wg0
+
+        # Vérification
+        echo -e "\n${GREEN}Configuration terminée. Vérification :${NC}"
         ip route show
-        
-        # Règles NAT
-        echo -e "\n${YELLOW}Règles NAT :${NC}"
-        sudo iptables -t nat -L -n -v
+        sudo iptables -L -n -v
     }
 
-    # Exécution des fonctions
-    configure_routing
-    verify_configuration
-
-    # Test de connectivité
-    echo -e "\n${YELLOW}Test de connectivité :${NC}"
-    if ping -c 4 192.168.1.1 > /dev/null 2>&1; then
-        echo -e "${GREEN}Connectivité à la passerelle : OK${NC}"
-    else
-        echo -e "${RED}Connectivité à la passerelle : ÉCHEC${NC}"
-    fi
+    # Exécution séquentielle
+    check_and_install_dependencies
+    select_interfaces
+    configure_lan_vpn_routing
 }
 
 step11() {
