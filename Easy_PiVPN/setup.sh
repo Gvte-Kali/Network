@@ -334,44 +334,44 @@ step9() {
 step10() {
     configure_lan_vpn_routing() {
         # Sélection des interfaces par l'utilisateur
-        echo -e "\e[33mListe des interfaces disponibles :\e[0m"
+        echo -e "${LIGHT_BLUE}Liste des interfaces disponibles :${NC}"
         ip -br link show | awk '{print NR" - "$1}'
 
-        read -p "\e[32mChoisissez le numéro de l'interface LAN : \e[0m" LAN_INDEX
-        read -p "\e[32mChoisissez le numéro de l'interface VPN : \e[0m" VPN_INDEX
+        read -p "${GRAY_BLUE}Choisissez le numéro de l'interface LAN : ${NC}" LAN_INDEX
+        read -p "${GRAY_BLUE}Choisissez le numéro de l'interface VPN : ${NC}" VPN_INDEX
 
         LAN_INTERFACE=$(ip -br link show | awk "NR==$LAN_INDEX {print \$1}")
         VPN_INTERFACE=$(ip -br link show | awk "NR==$VPN_INDEX {print \$1}")
 
         if [[ -z "$LAN_INTERFACE" || -z "$VPN_INTERFACE" ]]; then
-            echo -e "\e[31mInterfaces invalides. Vérifiez vos choix.\e[0m"
+            echo -e "${GRAY_BLUE}Interfaces invalides. Vérifiez vos choix.${NC}"
             return 1
         fi
 
-        echo -e "\e[33mInterface LAN sélectionnée : $LAN_INTERFACE\e[0m"
-        echo -e "\e[33mInterface VPN sélectionnée : $VPN_INTERFACE\e[0m"
+        echo -e "${LIGHT_BLUE}Interface LAN sélectionnée : $LAN_INTERFACE${NC}"
+        echo -e "${LIGHT_BLUE}Interface VPN sélectionnée : $VPN_INTERFACE${NC}"
 
         # Détection automatique des plages IP
         LAN_NETWORK=$(ip addr show $LAN_INTERFACE | grep -oP '(?<=inet\s)\d+\.\d+\.\d+\.\d+/\d+' | head -n 1)
         VPN_NETWORK=$(ip addr show $VPN_INTERFACE | grep -oP '(?<=inet\s)\d+\.\d+\.\d+\.\d+/\d+' | head -n 1)
 
         if [[ -z "$LAN_NETWORK" || -z "$VPN_NETWORK" ]]; then
-            echo -e "\e[31mImpossible de détecter les plages IP. Vérifiez vos interfaces.\e[0m"
+            echo -e "${GRAY_BLUE}Impossible de détecter les plages IP. Vérifiez vos interfaces.${NC}"
             return 1
         fi
 
-        echo -e "\e[33mRéseau LAN détecté : $LAN_NETWORK\e[0m"
-        echo -e "\e[33mRéseau VPN détecté : $VPN_NETWORK\e[0m"
+        echo -e "${LIGHT_BLUE}Réseau LAN détecté : $LAN_NETWORK${NC}"
+        echo -e "${LIGHT_BLUE}Réseau VPN détecté : $VPN_NETWORK${NC}"
 
         # Nettoyage COMPLET des règles existantes
-        echo -e "\e[33mNettoyage complet des règles iptables...\e[0m"
+        echo -e "${LIGHT_BLUE}Nettoyage complet des règles iptables...${NC}"
         sudo iptables -F
         sudo iptables -X
         sudo iptables -t nat -F
         sudo iptables -t nat -X
 
         # Activation du forwarding IP
-        echo -e "\e[33mConfiguration du forwarding IP...\e[0m"
+        echo -e "${LIGHT_BLUE}Configuration du forwarding IP...${NC}"
         sudo sysctl -w net.ipv4.ip_forward=1
         sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
@@ -400,28 +400,31 @@ step10() {
         sudo netfilter-persistent save
 
         # Configuration des routes
-        echo -e "\e[33mConfiguration des routes...\e[0m"
+        echo -e "${LIGHT_BLUE}Configuration des routes...${NC}"
+        LAN_IP=$(echo "$LAN_NETWORK" | cut -d'/' -f1)
+        VPN_IP=$(echo "$VPN_NETWORK" | cut -d'/' -f1)
+
         # Ajouter une route pour le réseau LAN sur l'interface VPN
-        sudo ip route add "$LAN_NETWORK" dev "$VPN_INTERFACE" || echo "Route LAN via VPN déjà configurée"
-        sudo ip route add "$VPN_NETWORK" dev "$LAN_INTERFACE" || echo "Route VPN via LAN déjà configurée"
+        sudo ip route add "$LAN_IP" dev "$VPN_INTERFACE" 2>/dev/null || echo "Route LAN via VPN déjà configurée"
+        sudo ip route add "$VPN_IP" dev "$LAN_INTERFACE" 2>/dev/null || echo "Route VPN via LAN déjà configurée"
 
         # Redémarrer WireGuard
         sudo systemctl restart wg-quick@wg0
 
         # Diagnostic détaillé
         diagnostic_routing() {
-            echo -e "\n\e[32mDiagnostic de configuration :\e[0m"
+            echo -e "\n${GRAY_BLUE}Diagnostic de configuration :${NC}"
 
-            echo -e "\e[34mForwarding IP :\e[0m"
+            echo -e "${LIGHT_BLUE}Forwarding IP :${NC}"
             cat /proc/sys/net/ipv4/ip_forward
 
-            echo -e "\n\e[34mRoutes :\e[0m"
+            echo -e "\n${LIGHT_BLUE}Routes :${NC}"
             ip route show
 
-            echo -e "\n\e[34mRègles iptables (Filter) :\e[0m"
+            echo -e "\n${LIGHT_BLUE}Règles iptables (Filter) :${NC}"
             sudo iptables -L -n -v
 
-            echo -e "\n\e[34mRègles iptables (NAT) :\e[0m"
+            echo -e "\n${LIGHT_BLUE}Règles iptables (NAT) :${NC}"
             sudo iptables -t nat -L -n -v
         }
 
@@ -430,17 +433,17 @@ step10() {
 
     # Vérification des prérequis
     check_prerequisites() {
-        echo -e "\e[33mVérification des prérequis...\e[0m"
+        echo -e "${LIGHT_BLUE}Vérification des prérequis...${NC}"
 
         # Vérifier WireGuard
         if ! command -v wg &> /dev/null; then
-            echo -e "\e[31mWireGuard n'est pas installé.\e[0m"
+            echo -e "${GRAY_BLUE}WireGuard n'est pas installé.${NC}"
             return 1
         fi
 
         # Vérifier configuration PiVPN
         if [[ ! -f /etc/wireguard/wg0.conf ]]; then
-            echo -e "\e[31mConfiguration PiVPN introuvable.\e[0m"
+            echo -e "${GRAY_BLUE}Configuration PiVPN introuvable.${NC}"
             return 1
         fi
 
@@ -451,25 +454,25 @@ step10() {
     if check_prerequisites; then
         configure_lan_vpn_routing
     else
-        echo -e "\e[31mLes prérequis ne sont pas satisfaits.\e[0m"
+        echo -e "${GRAY_BLUE}Les prérequis ne sont pas satisfaits.${NC}"
         return 1
     fi
 }
 
 # Diagnostic supplémentaire
 debug_network_routing() {
-    echo -e "\n\e[36mDiagnostic réseau avancé :\e[0m"
+    echo -e "\n${LIGHT_BLUE}Diagnostic réseau avancé :${NC}"
 
     # Informations détaillées sur les interfaces
-    echo -e "\e[33mInterfaces réseau :\e[0m"
+    echo -e "${GRAY_BLUE}Interfaces réseau :${NC}"
     ip -br addr
 
     # Connexions actives
-    echo -e "\n\e[33mConnexions réseau actives :\e[0m"
+    echo -e "\n${GRAY_BLUE}Connexions réseau actives :${NC}"
     sudo netstat -tunapl
 
     # Règles de routage complètes
-    echo -e "\n\e[33mTable de routage complète :\e[0m"
+    echo -e "\n${GRAY_BLUE}Table de routage complète :${NC}"
     ip route show table all
 }
 
