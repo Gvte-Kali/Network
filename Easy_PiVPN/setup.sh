@@ -332,176 +332,59 @@ step9() {
 
 # Étape 10 : Configuration du routage et NAT entre interfaces VPN et réseau physique
 step10() {
-    echo -e "\n${CYAN}=== Configuration avancée du routage réseau VPN vers LAN ===${NC}"
+    echo -e "\n${CYAN}=== Configuration du routage réseau VPN vers LAN ===${NC}"
 
-    # Fonctions utilitaires
-    detect_network_details() {
-        local interface="$1"
-        local ip=$(ip -o -f inet addr show "$interface" | awk '{print $4}' | cut -d/ -f1)
-        local network=$(ipcalc -n "$ip" | grep Network | awk '{print $2}')
-        echo "$ip,$network"
+    # Détection automatique des interfaces
+    lan_interface=$(ip route | grep default | awk '{print $5}')
+    vpn_interface=$(ip -br link show | awk '$1 ~ /^wg/ {print $1}')
+    vpn_network=$(ip -o -f inet addr show "$vpn_interface" | awk '{print $4}' | cut -d/ -f1 | xargs ipcalc -n)
+
+    # Affichage des informations
+    echo -e "${GREEN}Interface LAN : $lan_interface${NC}"
+    echo -e "${GREEN}Interface VPN : $vpn_interface${NC}"
+    echo -e "${GREEN}Réseau VPN : $vpn_network${NC}"
+
+    # Configuration du routage
+    configure_routing() {
+        # Activer le forwarding IP
+        echo -e "\n${YELLOW}Activation du forwarding IP...${NC}"
+        sudo sysctl -w net.ipv4.ip_forward=1
+        sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+
+        # Configuration NAT
+        echo -e "${YELLOW}Configuration du NAT...${NC}"
+        sudo iptables -t nat -F
+        sudo iptables -t nat -A POSTROUTING -o "$lan_interface" -s "$vpn_network" -j MASQUERADE
+
+        # Sauvegarder la configuration
+        sudo apt-get install -y iptables-persistent
+        sudo netfilter-persistent save
     }
 
-    # 1. Détection et sélection de l'interface LAN
-    echo -e "${YELLOW}Interfaces réseau disponibles :${NC}"
-    declare -A lan_interfaces=()
-    
-    # Récupérer les interfaces et leurs adresses IP
-    while IFS=: read -r interface ip; do
-        if [[ -n "$interface" && "$interface" != "lo" && "$interface" != *"wg"* ]]; then
-            lan_interfaces["$interface"]="$ip"
-            echo "$interface : $ip"
-        fi
-    done < <(ip -o -f inet addr show | awk '{print $2":"$4}' | cut -d/ -f1)
-
-    # Sélection de l'interface LAN
-    read -p "Sélectionnez l'interface LAN : " selected_lan_interface
-    
-    if [[ -z "${lan_interfaces[$selected_lan_interface]}" ]]; then
-        echo -e "${RED}Interface invalide.${NC}"
-        return 1
-    fi
-
-    # Récupérer les détails du réseau LAN
-    IFS=',' read -r lan_ip lan_network <<< $(detect_network_details "$selected_lan_interface")
-
-    # 2. Détecter l'interface Wireguard
-    wireguard_interface=$(ip -br link show | awk '$1 ~ /^wg/ {print $1}')
-    
-    if [[ -z "$wireguard_interface" ]]; then
-        echo -e "${RED}Aucune interface Wireguard détectée.${NC}"
-        return 1
-    fi
-
-    # Récupérer les détails du réseau Wireguard
-    IFS=',' read -r wireguard_ip wireguard_network <<< $(detect_network_details "$wireguard_interface")
-
-    # Affichage des informations détectées
-    echo -e "\n${GREEN}Configuration réseau :${NC}"
-    echo "Interface LAN       : $selected_lan_interface"
-    echo "IP LAN             : $lan_ip"
-    echo "Réseau LAN         : $lan_network"
-    echo "Interface Wireguard: $wireguard_interface"
-    echo "IP Wireguard       : $wireguard_ip"
-    echo "Réseau Wireguard   : $wireguard_network"
-
-    # 3. Configuration du routage et NAT
-   configure_network() {
-    echo -e "\n${YELLOW}Configuration du routage et NAT...${NC}"
-
-    # Activer le forwarding IP
-    sudo sysctl -w net.ipv4.ip_forward=1
-    sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-
-    # Nettoyer les règles existantes
-    sudo iptables -F
-    sudo iptables -X
-    sudo iptables -t nat -F
-    sudo iptables -t nat -X
-
-    # Politique par défaut plus permissive
-    sudo iptables -P INPUT ACCEPT
-    sudo iptables -P OUTPUT ACCEPT
-    sudo iptables -P FORWARD ACCEPT
-
-    # Configuration NAT plus robuste
-    sudo iptables -t nat -A POSTROUTING -s 10.251.203.0/24 -o eth0 -j MASQUERADE
-    sudo iptables -t nat -A POSTROUTING -s 10.251.203.0/24 -j MASQUERADE
-
-    # Règles de forwarding détaillées
-    sudo iptables -A FORWARD -i wg0 -o eth0 -j ACCEPT
-    sudo iptables -A FORWARD -i eth0 -o wg0 -m state --state ESTABLISHED,RELATED -j ACCEPT
-
-    # Routes
-    sudo ip route del 192.168.1.0/24 dev wg0 scope link 2>/dev/null || true
-    sudo ip route add 192.168.1.0/24 via 10.251.203.1 dev wg0
-
-    # Sauvegarder la configuration
-    sudo apt-get install -y iptables-persistent
-    sudo netfilter-persistent save
-}
-
-test_network_connectivity() {
-    echo -e "\n${CYAN}Test de connectivité réseau détaillé :${NC}"
-    
-    # Vérifier la passerelle
-    gateway_ip="192.168.1.1"
-    echo -e "${YELLOW}Test de connectivité vers la passerelle $gateway_ip :${NC}"
-    
-    # Test ping détaillé
-    ping_output=$(ping -c 4 "$gateway_ip")
-    ping_result=$?
-    
-    if [ $ping_result -eq 0 ]; then
-        echo -e "${GREEN}Connectivité à la passerelle : OK${NC}"
-        echo "$ping_output"
-    else
-        echo -e "${RED}Connectivité à la passerelle : ÉCHEC${NC}"
+    # Vérification de la configuration
+    verify_configuration() {
+        echo -e "\n${CYAN}Vérification de la configuration :${NC}"
         
-        # Diagnostics supplémentaires
-        echo -e "\n${YELLOW}Diagnostic de connectivité :${NC}"
-        echo "Route par défaut :"
-        ip route show default
-        
-        echo -e "\nInterfaces réseau :"
-        ip addr show
-        
-        echo -e "\nTable de routage complète :"
-        ip route show table all
-    fi
-    
-    # Test de résolution DNS
-    echo -e "\n${YELLOW}Test de résolution DNS :${NC}"
-    if nslookup google.com > /dev/null 2>&1; then
-        echo -e "${GREEN}Résolution DNS : OK${NC}"
-    else
-        echo -e "${RED}Résolution DNS : ÉCHEC${NC}"
-    fi
-}
-
-    # Fonction de diagnostic détaillé
-    verify_network_configuration() {
-        echo -e "\n${CYAN}Diagnostic réseau détaillé :${NC}"
-        
-        # Informations réseau complètes
-        echo -e "${YELLOW}Configuration IP :${NC}"
-        ip addr show
-        
-        echo -e "\n${YELLOW}Routes :${NC}"
+        # Routes
+        echo -e "${YELLOW}Routes :${NC}"
         ip route show
         
-        echo -e "\n${YELLOW}Règles iptables (Filter) :${NC}"
-        sudo iptables -L -n -v
-        
-        echo -e "\n${YELLOW}Règles iptables (NAT) :${NC}"
+        # Règles NAT
+        echo -e "\n${YELLOW}Règles NAT :${NC}"
         sudo iptables -t nat -L -n -v
-        
-        # Test de connectivité
-        echo -e "\n${YELLOW}Test de connectivité :${NC}"
-        if ping -c 4 192.168.1.1 > /dev/null 2>&1; then
-            echo -e "${GREEN}Connectivité à la passerelle : OK${NC}"
-        else
-            echo -e "${RED}Connectivité à la passerelle : ÉCHEC${NC}"
-        fi
     }
 
-    # Exécution des configurations
-    configure_network
-    verify_network_configuration
+    # Exécution des fonctions
+    configure_routing
+    verify_configuration
 
-    # Sauvegarder la configuration
-    mkdir -p "$HOME/vpn_config"
-    cat > "$HOME/vpn_config/network_config" << EOL
-LAN_INTERFACE=$selected_lan_interface
-LAN_IP=$lan_ip
-LAN_NETWORK=$lan_network
-VPN_INTERFACE=$wireguard_interface
-VPN_IP=$wireguard_ip
-VPN_NETWORK=$wireguard_network
-EOL
-
-    # Confirmation finale
-    echo -e "\n${GREEN}Configuration terminée avec succès.${NC}"
+    # Test de connectivité
+    echo -e "\n${YELLOW}Test de connectivité :${NC}"
+    if ping -c 4 192.168.1.1 > /dev/null 2>&1; then
+        echo -e "${GREEN}Connectivité à la passerelle : OK${NC}"
+    else
+        echo -e "${RED}Connectivité à la passerelle : ÉCHEC${NC}"
+    fi
 }
 
 step11() {
