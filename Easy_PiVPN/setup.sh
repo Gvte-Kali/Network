@@ -309,16 +309,33 @@ step8() {
   mkdir -p "$HOME/vpn_config"
   echo "$discord_webhook" > "$HOME/vpn_config/discord_webhook.txt"
   
-  # Télécharger le script de mise à jour IP
-  update_script="$HOME/vpn_config/update_pivpn_ip.sh"
-  wget -O "$update_script" "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/discord_public_ip_update.sh"
-  chmod +x "$update_script"
+  # Créer un script de wrapper qui télécharge et exécute le script à chaque fois
+  wrapper_script="$HOME/vpn_config/run_discord_ip_update.sh"
   
-  # Créer un cronjob pour exécuter le script toutes les 10 minutes
-  (crontab -l 2>/dev/null; echo "*/10 * * * * $update_script") | crontab -
+  cat > "$wrapper_script" << 'EOF'
+#!/bin/bash
+
+# Télécharger le script à chaque exécution
+wget -O /tmp/update_pivpn_ip.sh "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/discord_public_ip_update.sh"
+
+# Rendre le script exécutable
+chmod +x /tmp/update_pivpn_ip.sh
+
+# Exécuter le script
+/tmp/update_pivpn_ip.sh
+
+# Supprimer le script temporaire
+rm /tmp/update_pivpn_ip.sh
+EOF
+
+  # Rendre le wrapper exécutable
+  chmod +x "$wrapper_script"
   
-  echo -e "\n${LIGHT_BLUE}Script de mise à jour IP téléchargé avec succès et cronjob configuré !${NC}"
-  echo "Le script s'exécutera toutes les 10  toutes les 10 minutes pour vérifier et mettre à jour l'adresse IP publique."
+  # Créer un cronjob pour exécuter le wrapper toutes les 10 minutes
+  (crontab -l 2>/dev/null; echo "*/10 * * * * $wrapper_script") | crontab -
+  
+  echo -e "\n${LIGHT_BLUE}Cronjob configuré pour mettre à jour l'IP publique !${NC}"
+  echo "Le script téléchargera et exécutera le script de mise à jour toutes les 10 minutes."
   echo "Vous pouvez modifier ou supprimer ce cronjob à tout moment."
   echo
 }
@@ -477,7 +494,7 @@ EOL
 
 # Étape 12 : Gestion des utilisateurs PiVPN
 step12() {
-  echo -e "\n${GRAY_BLUE}=== Étape 12 : Gestion des utilisateurs PiVPN ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Étape 12 : Gestion des utilisateurs OpenVPN ===${NC}"
   
   # Vérifier si PiVPN est installé
   if ! command -v pivpn &> /dev/null; then
@@ -496,9 +513,12 @@ step12() {
       local discord_webhook=$(cat "$webhook_file")
       
       if [ -n "$file_path" ] && [ -f "$file_path" ]; then
+        # Correction du chemin du fichier
+        local absolute_file_path=$(realpath "$file_path")
+        
         # Envoi avec fichier
         curl -F "payload_json={\"content\":\"$message\"}" \
-             -F "file=@$file_path" \
+             -F "file=@$absolute_file_path" \
              "$discord_webhook"
       else
         # Envoi simple du message
@@ -513,7 +533,7 @@ step12() {
   
   # Menu de gestion des utilisateurs
   while true; do
-    echo -e "\n${LIGHT_BLUE}Options de gestion des utilisateurs PiVPN :${NC}"
+    echo -e "\n${LIGHT_BLUE}Options de gestion des utilisateurs OpenVPN :${NC}"
     echo "1. Ajouter un nouvel utilisateur"
     echo "2. Lister les utilisateurs existants"
     echo "3. Supprimer un utilisateur"
@@ -531,7 +551,7 @@ step12() {
           # Validation du nom d'utilisateur
           if [[ "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
             # Vérifier si l'utilisateur existe déjà
-            if [ -f "/etc/wireguard/configs/$new_user.conf" ]; then
+            if [ -f "$HOME/ovpns/$new_user.ovpn" ]; then
               echo -e "${GRAY_BLUE}Un utilisateur avec ce nom existe déjà.${NC}"
               read -p "Voulez-vous choisir un autre nom ? (O/n) : " retry_choice
               
@@ -546,20 +566,11 @@ step12() {
               # Attendre que la création soit terminée
               sleep 2
               
-              config_dir="/etc/wireguard/configs"
-              user_config="$config_dir/$new_user.conf"
+              user_config="$HOME/ovpns/$new_user.ovpn"
               
               if [ -f "$user_config" ]; then
-                # Générer un QR code temporaire
-                qr_file=$(mktemp).png
-                sudo pivpn -qr "$new_user" > "$qr_file"
-                
-                # Envoi du message et des fichiers sur Discord
+                # Envoi du message et du fichier sur Discord
                 send_discord_message "Nouvel utilisateur VPN créé : $new_user" "$user_config"
-                send_discord_message "QR Code pour $new_user" "$qr_file"
-                
-                # Nettoyer le fichier QR temporaire
-                rm "$qr_file"
                 
                 echo -e "\n${LIGHT_BLUE}Fichier de configuration créé et envoyé sur Discord.${NC}"
               else
@@ -576,8 +587,8 @@ step12() {
       
       2)
         # Lister les utilisateurs existants
-        echo -e "\n${LIGHT_BLUE}Utilisateurs PiVPN existants :${NC}"
-        existing_users=$(ls /etc/wireguard/configs/*.conf 2>/dev/null | sed 's/\/etc\/wireguard\/configs\///; s/\.conf//')
+        echo -e "\n${LIGHT_BLUE}Utilisateurs OpenVPN existants :${NC}"
+        existing_users=$(ls "$HOME/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//')
         echo "$existing_users"
         
         # Envoi de la liste sur Discord
@@ -586,8 +597,8 @@ step12() {
       
       3)
         # Supprimer un utilisateur
-        echo -e "\n${LIGHT_BLUE}Supprimer un utilisateur PiVPN :${NC}"
-        existing_users=($(ls /etc/wireguard/configs/*.conf | sed 's/\/etc\/wireguard\/configs\///; s/\.conf//'))
+        echo -e "\n${LIGHT_BLUE}Supprimer un utilisateur OpenVPN :${NC}"
+        existing_users=($(ls "$HOME/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
         
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "Aucun utilisateur existant à supprimer."
@@ -623,8 +634,8 @@ step12() {
       
       4)
         # Exporter la configuration d'un utilisateur
-        echo -e "\n${LIGHT_BLUE}Exporter la configuration d'un utilisateur PiVPN :${NC}"
-        existing_users=($(ls /etc/wireguard/configs/*.conf | sed 's/\/etc\/wireguard\/configs\///; s/\.conf//'))
+        echo -e "\n${LIGHT_BLUE}Exporter la configuration d'un utilisateur OpenVPN :${NC}"
+        existing_users=($(ls "$HOME/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
         
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "Aucun utilisateur existant à exporter."
@@ -643,13 +654,13 @@ step12() {
              [ "$export_choice" -ge 1 ] && 
              [ "$export_choice" -le "${#existing_users[@]}" ]; then
             
-            user_to_export="${existing_users[$((export_choice-1 ))]}"
-            export_path="$HOME/vpn_config/${user_to_export}_config.conf"
-            cp "/etc/wireguard/configs/$user_to_export.conf" "$export_path"
+            user_to_export="${existing_users[$((export_choice-1))]}"
+            export_path="$HOME/vpn_config/${user_to_export}_config.ovpn"
+            cp "$HOME/ovpns/$user_to_export.ovpn" "$export_path"
             
             # Envoi d'une notification sur Discord avec le fichier exporté
             send_discord_message "Configuration de l'utilisateur exportée : $user_to_export" "$export_path"
-            echo "Configuration de l'utilisateur $user_to_export exportée vers $export_path."
+            echo "Configuration de l'utilisateur $user_to_export exportée vers $export_path ."
             break
           else
             echo "Choix invalide. Veuillez sélectionner un numéro valide."
@@ -673,7 +684,7 @@ step12() {
   
   # Sauvegarde des utilisateurs
   mkdir -p "$HOME/vpn_config"
-  ls /etc/wireguard/configs/*.conf 2>/dev/null | sed 's/\/etc\/wireguard\/configs\///; s/\.conf//' > "$HOME/vpn_config/vpn_users"
+  ls "$HOME/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "$HOME/vpn_config/vpn_users"
   
   echo -e "\n${LIGHT_BLUE}Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users${NC}"
   send_discord_message "Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users"
