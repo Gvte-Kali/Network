@@ -334,6 +334,10 @@ step9() {
 step10() {
     echo -e "\n${CYAN}=== Configuration du routage et NAT Wireguard ===${NC}"
     
+    # Réseau Wireguard prédéfini
+    wireguard_network="10.251.203.0/24"
+    echo -e "${GREEN}Réseau Wireguard prédéfini : $wireguard_network${NC}"
+    
     # Détection des interfaces Wireguard
     mapfile -t wireguard_interfaces < <(ip -br link show | awk '$1 ~ /^wg/ {print $1}')
     
@@ -354,14 +358,6 @@ step10() {
         
         read -p "Choisissez l'interface (1-${#wireguard_interfaces[@]}) : " wg_choice
         wireguard_interface="${wireguard_interfaces[$((wg_choice-1))]}"
-    fi
-    
-    # Détection automatique du réseau Wireguard
-    wireguard_network=$(sudo wg show "$wireguard_interface" | grep -oP 'allowed ips: \K[^/]+[/\d]+' | head -n 1)
-    
-    if [[ -z "$wireguard_network" ]]; then
-        echo -e "${YELLOW}Détection automatique du réseau impossible.${NC}"
-        read -p "Entrez manuellement le réseau Wireguard (CIDR) : " wireguard_network
     fi
     
     # Détection des interfaces physiques
