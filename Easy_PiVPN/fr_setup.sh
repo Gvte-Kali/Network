@@ -63,10 +63,6 @@ step0() {
   public_ip=$(curl -s ifconfig.me)
   echo "$public_ip" > "$HOME/vpn_config/public_ip"
 
-  # Configuration du cronjob pour mettre à jour l'adresse IP publique toutes les 10 minutes
-  (crontab -l 2>/dev/null; echo "*/10 * * * * curl -s ifconfig.me > $HOME/vpn_config/public_ip") | crontab -
-
-
   echo "Répertoires et fichiers de configuration créés."
   echo
 }
