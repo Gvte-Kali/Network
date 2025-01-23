@@ -333,65 +333,56 @@ step9() {
 # Étape 10 : Configuration du routage et NAT entre interfaces VPN et réseau physique
 step10() {
     configure_lan_vpn_routing() {
-        # Vérification et activation du forwarding IP
-        echo -e "${YELLOW}Configuration du forwarding IP...${NC}"
-        sudo sysctl -w net.ipv4.ip_forward=1
-        sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-
-        # Nettoyer les règles existantes
-        echo -e "${YELLOW}Nettoyage des règles iptables...${NC}"
+        # Nettoyer COMPLETEMENT les règles existantes
+        echo -e "${YELLOW}Nettoyage complet des règles iptables...${NC}"
         sudo iptables -F
         sudo iptables -X
         sudo iptables -t nat -F
         sudo iptables -t nat -X
 
-        # Définition des interfaces et réseaux
+        # Définition des interfaces
         LAN_INTERFACE="eth0"
         VPN_INTERFACE="wg0"
         VPN_NETWORK="10.251.203.0/24"
         LAN_NETWORK="192.168.1.0/24"
 
-        # Configuration des règles de forwarding COMPLÈTES
-        echo -e "${YELLOW}Configuration des règles de forwarding...${NC}"
-        
-        # Politique par défaut DROP pour plus de sécurité
+        # Activation du forwarding IP
+        echo -e "${YELLOW}Configuration du forwarding IP...${NC}"
+        sudo sysctl -w net.ipv4.ip_forward=1
+        sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+
+        # Politique de forwarding EXPLICITE
         sudo iptables -P INPUT ACCEPT
         sudo iptables -P OUTPUT ACCEPT
-        sudo iptables -P FORWARD DROP
+        sudo iptables -P FORWARD DROP  # Par défaut DROP
 
-        # Autoriser les connexions établies et reliées
+        # Autoriser le trafic sur la boucle locale
+        sudo iptables -A INPUT -i lo -j ACCEPT
+        sudo iptables -A OUTPUT -o lo -j ACCEPT
+
+        # Autoriser les connexions déjà établies
         sudo iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-        # Autoriser le trafic entre LAN et VPN
+        # Règles de forwarding DETAILLEES
         sudo iptables -A FORWARD -i "$VPN_INTERFACE" -o "$LAN_INTERFACE" -j ACCEPT
         sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -j ACCEPT
 
-        # Configuration NAT robuste
-        echo -e "${YELLOW}Configuration NAT...${NC}"
+        # Configuration NAT
         sudo iptables -t nat -A POSTROUTING -s "$VPN_NETWORK" -o "$LAN_INTERFACE" -j MASQUERADE
         sudo iptables -t nat -A POSTROUTING -s "$LAN_NETWORK" -o "$VPN_INTERFACE" -j MASQUERADE
 
-        # Sauvegarder les règles de manière permanente
-        echo -e "${YELLOW}Sauvegarde des règles iptables...${NC}"
+        # Sauvegarder les règles
         sudo apt-get install -y iptables-persistent
         sudo netfilter-persistent save
-
-        # Configuration des routes
-        echo -e "${YELLOW}Configuration des routes...${NC}"
-        # Supprimer les routes existantes si nécessaire
-        sudo ip route del "$LAN_NETWORK" dev "$VPN_INTERFACE" 2>/dev/null || true
-        # Ajouter une route pour le réseau VPN via l'interface Wireguard
-        sudo ip route add "$LAN_NETWORK" dev "$VPN_INTERFACE"
-
-        # Redémarrer le service Wireguard
-        echo -e "${YELLOW}Redémarrage du service Wireguard...${NC}"
-        sudo systemctl restart wg-quick@wg0
 
         # Diagnostic détaillé
         diagnostic_routing() {
             echo -e "\n${GREEN}Diagnostic de configuration :${NC}"
             
-            echo -e "${BLUE}Routes :${NC}"
+            echo -e "${BLUE}Forwarding IP :${NC}"
+            cat /proc/sys/net/ipv4/ip_forward
+            
+            echo -e "\n${BLUE}Routes :${NC}"
             ip route show
             
             echo -e "\n${BLUE}Règles iptables (Filter) :${NC}"
@@ -399,23 +390,31 @@ step10() {
             
             echo -e "\n${BLUE}Règles iptables (NAT) :${NC}"
             sudo iptables -t nat -L -n -v
-            
-            echo -e "\n${BLUE}Connexions actives :${NC}"
-            sudo netstat -tunapl
         }
         
+        # Configuration des routes
+        echo -e "${YELLOW}Configuration des routes...${NC}"
+        # Ajouter une route pour le réseau VPN
+        sudo ip route add "$LAN_NETWORK" dev "$VPN_INTERFACE" src 10.251.203.1
+
+        # Redémarrer Wireguard
+        sudo systemctl restart wg-quick@wg0
+
+        # Lancer le diagnostic
         diagnostic_routing
     }
 
-    # Vérification des prérequis (comme précédemment)
+    # Vérification des prérequis
     check_prerequisites() {
         echo -e "${YELLOW}Vérification des prérequis...${NC}"
         
+        # Vérifier Wireguard
         if ! command -v wg &> /dev/null; then
             echo -e "${RED}Wireguard n'est pas installé.${NC}"
             return 1
         fi
 
+        # Vérifier configuration PiVPN
         if [[ ! -f /etc/wireguard/wg0.conf ]]; then
             echo -e "${RED}Configuration PiVPN introuvable.${NC}"
             return 1
@@ -432,6 +431,26 @@ step10() {
         return 1
     fi
 }
+
+# Diagnostic supplémentaire
+debug_network_routing() {
+    echo -e "\n${CYAN}Diagnostic réseau avancé :${NC}"
+    
+    # Informations détaillées sur les interfaces
+    echo -e "${YELLOW}Interfaces réseau :${NC}"
+    ip -br addr
+    
+    # Connexions actives
+    echo -e "\n${YELLOW}Connexions réseau actives :${NC}"
+    sudo netstat -tunapl
+    
+    # Règles de routage complètes
+    echo -e "\n${YELLOW}Table de routage complète :${NC}"
+    ip route show table all
+}
+
+# Appeler le diagnostic si nécessaire
+# debug_network_routing
 
 step11() {
     echo -e "\n${CYAN}=== Configuration du NAT et accès réseau ===${NC}"
