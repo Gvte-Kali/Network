@@ -531,6 +531,16 @@ step12() {
     fi
   }
   
+  # Déterminer le répertoire correct des certificats OpenVPN
+  OVPN_DIR="/home/gvte/ovpns"
+  
+  # Vérifier l'existence du répertoire
+  if [ ! -d "$OVPN_DIR" ]; then
+    echo -e "${RED}Répertoire des configurations OpenVPN introuvable.${NC}"
+    echo "Vérifiez que PiVPN est correctement configuré pour votre utilisateur."
+    return 1
+  fi
+
   # Menu de gestion des utilisateurs
   while true; do
     echo -e "\n${LIGHT_BLUE}Options de gestion des utilisateurs OpenVPN :${NC}"
@@ -551,7 +561,7 @@ step12() {
           # Validation du nom d'utilisateur
           if [[ "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
             # Vérifier si l'utilisateur existe déjà
-            if [ -f "$HOME/ovpns/$new_user.ovpn" ]; then
+            if [ -f "$OVPN_DIR/$new_user.ovpn" ]; then
               echo -e "${GRAY_BLUE}Un utilisateur avec ce nom existe déjà.${NC}"
               read -p "Voulez-vous choisir un autre nom ? (O/n) : " retry_choice
               
@@ -566,7 +576,7 @@ step12() {
               # Attendre que la création soit terminée
               sleep 2
               
-              user_config="$HOME/ovpns/$new_user.ovpn"
+              user_config="$OVPN_DIR/$new_user.ovpn"
               
               if [ -f "$user_config" ]; then
                 # Envoi du message et du fichier sur Discord
@@ -588,17 +598,25 @@ step12() {
       2)
         # Lister les utilisateurs existants
         echo -e "\n${LIGHT_BLUE}Utilisateurs OpenVPN existants :${NC}"
-        existing_users=$(ls "$HOME/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//')
-        echo "$existing_users"
         
-        # Envoi de la liste sur Discord
-        send_discord_message "Liste des utilisateurs VPN :\n$existing_users"
+        # Utiliser une méthode plus robuste pour lister les utilisateurs
+        existing_users=$(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+        
+        if [ -z "$existing_users" ]; then
+          echo "Aucun utilisateur OpenVPN trouvé."
+        else
+          echo "$existing_users"
+          # Envoi de la liste sur Discord
+          send_discord_message "Liste des utilisateurs VPN :\n$existing_users"
+        fi
         ;;
       
       3)
         # Supprimer un utilisateur
         echo -e "\n${LIGHT_BLUE}Supprimer un utilisateur OpenVPN :${NC}"
-        existing_users=($(ls "$HOME/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
+        
+        # Utiliser find pour obtenir la liste des utilisateurs
+        mapfile -t existing_users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
         
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "Aucun utilisateur existant à supprimer."
@@ -635,7 +653,9 @@ step12() {
       4)
         # Exporter la configuration d'un utilisateur
         echo -e "\n${LIGHT_BLUE}Exporter la configuration d'un utilisateur OpenVPN :${NC}"
-        existing_users=($(ls "$HOME/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
+        
+        # Utiliser find pour obtenir la liste des utilisateurs
+        mapfile -t existing_users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
         
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "Aucun utilisateur existant à exporter."
@@ -656,11 +676,11 @@ step12() {
             
             user_to_export="${existing_users[$((export_choice-1))]}"
             export_path="$HOME/vpn_config/${user_to_export}_config.ovpn"
-            cp "$HOME/ovpns/$user_to_export.ovpn" "$export_path"
+            cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
             
             # Envoi d'une notification sur Discord avec le fichier exporté
             send_discord_message "Configuration de l'utilisateur exportée : $user_to_export" "$export_path"
-            echo "Configuration de l'utilisateur $user_to_export exportée vers $export_path ."
+            echo "Configuration de l'utilisateur $user_to_export exportée vers $export_path."
             break
           else
             echo "Choix invalide. Veuillez sélectionner un numéro valide."
@@ -684,108 +704,14 @@ step12() {
   
   # Sauvegarde des utilisateurs
   mkdir -p "$HOME/vpn_config"
-  ls "$HOME/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "$HOME/vpn_config/vpn_users"
+  find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//' > "$HOME/vpn_config/vpn_users"
   
   echo -e "\n${LIGHT_BLUE}Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users${NC}"
   send_discord_message "Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users"
   echo
 }
 
-# Étape 13 : Mise à jour de l'adresse IP publique PiVPN
-step13() {
-  echo -e "\n${GRAY_BLUE}=== Étape 13 : Mise à jour de l'adresse IP publique PiVPN ===${NC}"
-  
-  # Vérifier si PiVPN est installé
-  if ! command -v pivpn &> /dev/null; then
-    echo -e "${LIGHT_BLUE}PiVPN n'est pas installé.${NC}"
-    echo "Veuillez d'abord installer PiVPN à l'étape 9."
-    return 1
-  fi
-  
-  # Récupérer l'adresse IP publique actuelle
-  current_public_ip=$(curl -s ifconfig.me)
-  
-  # Vérifier la configuration actuelle de PiVPN
-  pivpn_config="/etc/wireguard/wg0.conf"
-  
-  if [ ! -f "$pivpn_config" ]; then
-    echo -e "${GRAY_BLUE}Fichier de configuration PiVPN introuvable.${NC}"
-    return 1
-  fi
-  
-  # Extraire l'adresse IP publique actuelle de la configuration
-  old_public_ip=$(grep "Endpoint" "$pivpn_config" | awk '{print $3}' | cut -d':' -f1)
-  
-  echo -e "${LIGHT_BLUE}Informations actuelles :${NC}"
-  echo "Adresse IP publique actuelle   : $current_public_ip"
-  echo "Adresse IP configurée dans PiVPN : $old_public_ip"
-  
-  # Comparer les adresses IP
-  if [ "$current_public_ip" == "$old_public_ip" ]; then
-    echo -e "\n${GRAY_BLUE}L'adresse IP publique n'a pas changé.${NC}"
-    read -p "Voulez-vous forcer la mise à jour ? (O/n) : " force_update
-    
-    if [[ ! "$force_update" =~ ^[Oo]$ ]]; then
-      echo "Mise à jour annulée."
-      return 0
-    fi
-  fi
-  
-  # Confirmer la mise à jour
-  read -p "Voulez-vous mettre à jour l'adresse IP publique ? (O/n) : " confirm_update
-  
-  if [[ ! "$confirm_update" =~ ^[Oo]$ ]]; then
-    echo "Mise à jour annulée."
-    return 0
-  fi
-  
-  # Sauvegarder la configuration originale
-  sudo cp "$pivpn_config" "$pivpn_config.bak"
-  
-  # Mettre à jour l'adresse IP dans la configuration du serveur
-  echo "Mise à jour de la configuration PiVPN..."
-  sudo sed -i "s/$old_public_ip/$current_public_ip/g" "$pivpn_config"
-  
-  # Mettre à jour les configurations des clients
-  client_configs_dir="/etc/wireguard/configs"
-  
-  echo "Mise à jour des configurations des clients..."
-  for client_config in "$client_configs_dir"/*.conf; do
-    if [ -f "$client_config" ]; then
-      sudo sed -i "s/$old_public_ip/$current_public_ip/g" "$client_config"
-      echo "Mise à jour de ${client_config##*/}"
-    fi
-  done
-  
-  # Redémarrer le service Wireguard
-  echo "Redémarrage du service Wireguard..."
-  sudo systemctl restart wg-quick@wg0
-  
-  # Sauvegarde des informations de mise à jour
-  mkdir -p "$HOME/vpn_config"
-  cat > "$HOME/vpn_config/ip_update_log" << EOL
-Date de mise à jour : $(date)
-Ancienne adresse IP : $old_public_ip
-Nouvelle adresse IP : $current_public_ip
-EOL
-  
-  echo -e "\n${LIGHT_BLUE}Mise à jour terminée :${NC}"
-  echo "- Adresse IP mise à jour dans la configuration serveur"
-  echo "- Configurations des clients mises à jour"
-  echo "- Service Wireguard redémarré"
-  echo "- Journal de mise à jour sauvegardé dans $HOME/vpn_config/ip_update_log"
-  
-  # Afficher le QR code pour les clients existants
-  echo -e "\n${LIGHT_BLUE}Codes QR des configurations clients :${NC}"
-  for client_config in "$client_configs_dir"/*.conf; do
-    if [ -f "$client_config" ]; then
-      client_name=$(basename "$client_config" .conf)
-      echo "Configuration pour $client_name :"
-      sudo pivpn -qr "$client_name"
-      echo
-    fi
-  done
-}
+
 
 # Fonction pour gérer les étapes et le choix d'action
 run_step() {
@@ -817,7 +743,6 @@ display_steps() {
   echo "10. Configurer routage et NAT VPN sur Raspberry Pi"
   echo "11. Configurer NAT et port forwarding sur routeur"
   echo "12. Gérer les utilisateurs PiVPN"
-  echo "13. Mettre à jour manuellement l'adresse IP publique PiVPN"
   echo
 }
 
