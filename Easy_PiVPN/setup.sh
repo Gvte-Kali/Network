@@ -399,23 +399,64 @@ step10() {
     sudo iptables -t nat -F
     sudo iptables -t nat -X
 
-    # Supprimer la route problématique
-    sudo ip route del 192.168.1.0/24 dev wg0 scope link 2>/dev/null || true
-
-    # Ajouter une route plus précise
-    sudo ip route add 192.168.1.0/24 via 10.251.203.1 dev wg0
-
-    # Configuration NAT
-    sudo iptables -t nat -A POSTROUTING -s 10.251.203.0/24 -o eth0 -j MASQUERADE
-
-    # Règles de forwarding plus permissives
+    # Politique par défaut plus permissive
+    sudo iptables -P INPUT ACCEPT
+    sudo iptables -P OUTPUT ACCEPT
     sudo iptables -P FORWARD ACCEPT
+
+    # Configuration NAT plus robuste
+    sudo iptables -t nat -A POSTROUTING -s 10.251.203.0/24 -o eth0 -j MASQUERADE
+    sudo iptables -t nat -A POSTROUTING -s 10.251.203.0/24 -j MASQUERADE
+
+    # Règles de forwarding détaillées
     sudo iptables -A FORWARD -i wg0 -o eth0 -j ACCEPT
     sudo iptables -A FORWARD -i eth0 -o wg0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+    # Routes
+    sudo ip route del 192.168.1.0/24 dev wg0 scope link 2>/dev/null || true
+    sudo ip route add 192.168.1.0/24 via 10.251.203.1 dev wg0
 
     # Sauvegarder la configuration
     sudo apt-get install -y iptables-persistent
     sudo netfilter-persistent save
+}
+
+test_network_connectivity() {
+    echo -e "\n${CYAN}Test de connectivité réseau détaillé :${NC}"
+    
+    # Vérifier la passerelle
+    gateway_ip="192.168.1.1"
+    echo -e "${YELLOW}Test de connectivité vers la passerelle $gateway_ip :${NC}"
+    
+    # Test ping détaillé
+    ping_output=$(ping -c 4 "$gateway_ip")
+    ping_result=$?
+    
+    if [ $ping_result -eq 0 ]; then
+        echo -e "${GREEN}Connectivité à la passerelle : OK${NC}"
+        echo "$ping_output"
+    else
+        echo -e "${RED}Connectivité à la passerelle : ÉCHEC${NC}"
+        
+        # Diagnostics supplémentaires
+        echo -e "\n${YELLOW}Diagnostic de connectivité :${NC}"
+        echo "Route par défaut :"
+        ip route show default
+        
+        echo -e "\nInterfaces réseau :"
+        ip addr show
+        
+        echo -e "\nTable de routage complète :"
+        ip route show table all
+    fi
+    
+    # Test de résolution DNS
+    echo -e "\n${YELLOW}Test de résolution DNS :${NC}"
+    if nslookup google.com > /dev/null 2>&1; then
+        echo -e "${GREEN}Résolution DNS : OK${NC}"
+    else
+        echo -e "${RED}Résolution DNS : ÉCHEC${NC}"
+    fi
 }
 
     # Fonction de diagnostic détaillé
