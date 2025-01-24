@@ -16,3 +16,5 @@ step0() {
   echo "Directories and configuration files created."
   echo
 }
+
+step0
