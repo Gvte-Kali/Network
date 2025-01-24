@@ -29,3 +29,5 @@ step4() {
   
   echo
 }
+
+step4
