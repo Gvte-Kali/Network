@@ -9,3 +9,5 @@ step3() {
   sudo apt install -y openvpn
   echo
 }
+
+step3
