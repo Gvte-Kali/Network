@@ -10,7 +10,10 @@ step5() {
   # Ask if the network configuration has already been done
   read -p "Has the network configuration already been done? (Y/n): " config_done
 
-  if [[ "$config_done" =~ ^[Yy]$ ]]; then
+  # Normalize input to lowercase
+  config_done=${config_done,,}
+
+  if [[ "$config_done" == "y" || "$config_done" == "yes" ]]; then
     echo "Network configuration has already been completed. Exiting step 5."
     return 0
   fi
@@ -18,7 +21,10 @@ step5() {
   # If not done, offer to configure the network
   read -p "Do you want to configure the network using dhcpcd via raspi-config? (Y/n): " configure_choice
 
-  if [[ "$configure_choice" =~ ^[Yy]$ ]]; then
+  # Normalize input to lowercase
+  configure_choice=${configure_choice,,}
+
+  if [[ "$configure_choice" == "y" || "$configure_choice" == "yes" ]]; then
     echo "Launching raspi-config for network configuration..."
     sudo raspi-config nonint do_network
     echo "Network configuration completed via raspi-config."
