@@ -4,17 +4,34 @@ LIGHT_BLUE="\033[1;36m"   # Light blue
 NC="\033[0m"              # Reset color
 
 step5() {
-    echo -e "\n${GRAY_BLUE}=== Step 5: IP Configuration ===${NC}"
+    clear  # Clear screen for better visibility
     
-    # Check if network configuration already exists
-    read -p "Have you already configured the network? (y/n): " network_config_exists
-    
-    if [[ "$network_config_exists" =~ ^[Yy]$ ]]; then
-        echo "Existing network configuration. Ending IP configuration."
-        return 0
-    fi
+    # Priority request for existing network configuration
+    while true; do
+        echo -e "${GRAY_BLUE}=== Step 5: IP Configuration ===${NC}"
+        read -p "Have you already configured the network? (y/n): " network_config_exists
+        
+        # Convert to lowercase for flexibility
+        network_config_exists=$(echo "$network_config_exists" | tr '[:upper:]' '[:lower:]')
+        
+        # Response validation
+        case "$network_config_exists" in
+            y|yes)
+                echo "Existing network configuration. Ending IP configuration."
+                return 0
+                ;;
+            n|no)
+                break  # Exit loop to continue configuration
+                ;;
+            *)
+                echo "Invalid input. Please answer with 'y' or 'n'."
+                sleep 1  # Small delay to see the message
+                clear
+                ;;
+        esac
+    done
 
-    # Request IP configuration if no existing configuration
+    # Remaining IP configuration
     read -p "Network interface (e.g., eth0): " IP_Interface
     read -p "IP Address (e.g., 192.168.1.100): " IP_Address
     read -p "Netmask (e.g., /24): " Netmask
@@ -22,9 +39,16 @@ step5() {
     read -p "Primary DNS: " DNS_Primary
     read -p "Secondary DNS: " DNS_Secondary
 
-    # User input validation (basic verification)
-    if ! [[ "$IP_Interface" =~ ^[a-z0-9]+$ && "$IP_Address" =~ ^[0-9]+.[0-9]+.[0-9]+.[0-9]+$ ]]; then
+    # Interface and IP address validation
+    if ! [[ "$IP_Interface" =~ ^[a-z0-9]+$ ]] || ! [[ "$IP_Address" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
         echo "Invalid entries, please try again."
+        return 1
+    fi
+
+    # Additional validation for IP address range
+    IFS='.' read -r i1 i2 i3 i4 <<< "$IP_Address"
+    if (( i1 < 0 || i1 > 255 || i2 < 0 || i2 > 255 || i3 < 0 || i3 > 255 || i4 < 0 || i4 > 255 )); then
+        echo "Invalid IP Address range, please try again."
         return 1
     fi
 
