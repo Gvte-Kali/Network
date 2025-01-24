@@ -1,6 +1,6 @@
 # Define colors
-GRAY_BLUE="\033[1;34m"    # 
-LIGHT_BLUE="\033[1;36m"   # 
+GRAY_BLUE="\033[1;34m"    # Dark gray blue
+LIGHT_BLUE="\033[1;36m"   # Light blue
 NC="\033[0m"              # Reset color
 
 # Step 5: Network Configuration
@@ -18,6 +18,7 @@ step5() {
     nmcli device show
   else
     echo "No recognized network management service is running."
+    return 1  # Exit the function if no service is found
   fi
 
   # Prompt to modify network configuration
@@ -35,7 +36,8 @@ step5() {
     if systemctl is-active --quiet dhcpcd; then
       echo "Modifying dhcpcd configuration..."
       # Here you would typically modify /etc/dhcpcd.conf
-      echo "interface eth0" >> /etc/dhcpcd.conf
+      echo -e "\n# Custom configuration added by script" >> /etc/dhcpcd.conf
+      echo "interface eth0" >> /etc/dhcpcd.conf  # Change 'eth0' to your actual interface name
       echo "static ip_address=$new_ip/$new_netmask" >> /etc/dhcpcd.conf
       echo "static routers=$new_gateway" >> /etc/dhcpcd.conf
       echo "Configuration updated. Restarting dhcpcd service..."
@@ -43,9 +45,10 @@ step5() {
     elif systemctl is-active --quiet NetworkManager; then
       echo "Modifying NetworkManager configuration..."
       # Here you would typically use nmcli to modify the connection
-      nmcli con mod "Wired connection 1" ipv4.addresses "$new_ip/$new_netmask"
-      nmcli con mod "Wired connection 1" ipv4.gateway "$new_gateway"
-      nmcli con up "Wired connection 1"
+      connection_name=$(nmcli -t -f NAME con show | head -n 1)  # Get the first connection name
+      nmcli con mod "$connection_name" ipv4.addresses "$new_ip/$new_netmask"
+      nmcli con mod "$connection_name" ipv4.gateway "$new_gateway"
+      nmcli con up "$connection_name"
       echo "Configuration updated."
     else
       echo "No recognized network management service is running. Cannot modify configuration."
@@ -58,4 +61,5 @@ step5() {
   echo
 }
 
+# Call the step5 function to test it
 step5
