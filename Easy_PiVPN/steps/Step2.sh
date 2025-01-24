@@ -139,7 +139,7 @@ step2() {
   done
 
   # Create the rustdesk session file
-  echo "$rustdesk_id" > "$HOME/vpn_config/rustdesk"
+  echo "$rustdesk_id" > "/home/$USER/vpn_config/rustdesk"
   
   echo "RustDesk installation and configuration process completed."
   echo
