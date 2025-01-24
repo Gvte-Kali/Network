@@ -1,8 +1,3 @@
-# Define colors
-GRAY_BLUE="\033[1;34m"    # Dark gray blue
-LIGHT_BLUE="\033[1;36m"   # Light blue
-NC="\033[0m"              # Reset color
-
 step5() {
     clear  # Clear screen for better visibility
     
@@ -14,6 +9,9 @@ step5() {
         # Convert to lowercase for flexibility
         network_config_exists=$(echo "$network_config_exists" | tr '[:upper:]' '[:lower:]')
         
+        # Debugging output
+        echo "Debug: You entered '$network_config_exists'"
+
         # Response validation
         case "$network_config_exists" in
             y|yes)
@@ -55,6 +53,3 @@ step5() {
     echo "Configuring IP..."
     # Add network configuration commands here
 }
-
-# Call the step5 function to test it
-step5
