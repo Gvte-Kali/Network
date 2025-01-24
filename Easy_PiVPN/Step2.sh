@@ -142,3 +142,5 @@ step2() {
   echo "RustDesk installation and configuration process completed."
   echo
 }
+
+step2
