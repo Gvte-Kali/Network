@@ -42,8 +42,7 @@ step4() {
     PS3="Choose an option: "
     options=("Yes, skip IP configuration" "No, proceed with IP configuration")
     
-    select opt in "${options[@]}"
-    do
+    select opt in "${options[@]}"; do
       case $opt in
         "Yes, skip IP configuration")
           echo "Skipping steps 5 and 6."
