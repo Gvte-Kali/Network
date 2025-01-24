@@ -3,6 +3,7 @@ GRAY_BLUE="\033[1;34m"
 LIGHT_BLUE="\033[1;36m"
 NC="\033[0m"   
 
+clear
 
 # Step 0: Preparing directories and configuration files
 step0() {
