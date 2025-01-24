@@ -493,13 +493,13 @@ EOL
 }
 
 # Étape 12 : Gestion des utilisateurs PiVPN
-# Étape 12 : Gestion des utilisateurs PiVPN
 step12() {
-  # Récupérer l'utilisateur actuel
+  # Global variable for the current user
   CURRENT_USER=$(whoami)
-  
+  OVPN_DIR="/home/$CURRENT_USER/ovpns/"  # Directory for OVPN files
+
   echo -e "\n${GRAY_BLUE}=== Étape 12 : Gestion des utilisateurs OpenVPN ===${NC}"
-  
+
   # Vérifier si PiVPN est installé
   if ! command -v pivpn &> /dev/null; then
     echo -e "${LIGHT_BLUE}PiVPN n'est pas installé.${NC}"
@@ -534,12 +534,12 @@ step12() {
       echo "Fichier webhook Discord non trouvé."
     fi
   }
-  
+
   # Menu de gestion des utilisateurs
   while true; do
     echo -e "\n${LIGHT_BLUE}Options de gestion des utilisateurs OpenVPN :${NC}"
-    echo "1. Ajouter un nouvel utilisateur"
-    echo "2. Lister les utilisateurs existants"
+    echo "1. Lister les utilisateurs existants"
+    echo "2. Créer un nouvel utilisateur"
     echo "3. Supprimer un utilisateur"
     echo "4. Exporter la configuration d'un utilisateur"
     echo "0. Retour au menu principal"
@@ -548,6 +548,20 @@ step12() {
     
     case "$user_choice" in
       1)
+        # Lister les utilisateurs existants
+        echo -e "\n${LIGHT_BLUE}Utilisateurs OpenVPN existants :${NC}"
+        existing_users=$(ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//')
+        
+        if [ -z "$existing_users" ]; then
+          echo "Aucun utilisateur existant."
+        else
+          echo "$existing_users"
+          # Envoi de la liste sur Discord
+          send_discord_message "Liste des utilisateurs VPN :\n$existing_users"
+        fi
+        ;;
+      
+      2)
         # Ajouter un nouvel utilisateur
         while true; do
           read -p "Entrez le nom d'utilisateur (sans espaces) : " new_user
@@ -555,7 +569,7 @@ step12() {
           # Validation du nom d'utilisateur
           if [[ "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
             # Vérifier si l'utilisateur existe déjà
-            if [ -f "/home/$CURRENT_USER/ovpns/$new_user.ovpn" ]; then
+            if [ -f "$OVPN_DIR/$new_user.ovpn" ]; then
               echo -e "${GRAY_BLUE}Un utilisateur avec ce nom existe déjà.${NC}"
               read -p "Voulez-vous choisir un autre nom ? (O/n) : " retry_choice
               
@@ -570,7 +584,7 @@ step12() {
               # Attendre que la création soit terminée
               sleep 2
               
-              user_config="/home/$CURRENT_USER/ovpns/$new_user.ovpn"
+              user_config="$OVPN_DIR/$new_user.ovpn"
               
               if [ -f "$user_config" ]; then
                 # Envoi du message et du fichier sur Discord
@@ -589,20 +603,10 @@ step12() {
         done
         ;;
       
-      2)
-        # Lister les utilisateurs existants
-        echo -e "\n${LIGHT_BLUE}Utilisateurs OpenVPN existants :${NC}"
-        existing_users=$(ls "/home/$CURRENT_USER/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//')
-        echo "$existing_users"
-        
-        # Envoi de la liste sur Discord
-        send_discord_message "Liste des utilisateurs VPN :\n$existing_users"
-        ;;
-      
       3)
         # Supprimer un utilisateur
         echo -e "\n${LIGHT_BLUE}Supprimer un utilisateur OpenVPN :${NC}"
-        existing_users=($(ls "/home/$CURRENT_USER/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
+        existing_users=($(ls "$OVPN_DIR"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
         
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "Aucun utilisateur existant à supprimer."
@@ -639,7 +643,7 @@ step12() {
       4)
         # Exporter la configuration d'un utilisateur
         echo -e "\n${LIGHT_BLUE}Exporter la configuration d'un utilisateur OpenVPN :${NC}"
-        existing_users=($(ls "/home/$CURRENT_USER/ovpns"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
+        existing_users=($(ls "$OVPN_DIR"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
         
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "Aucun utilisateur existant à exporter."
@@ -660,7 +664,7 @@ step12() {
             
             user_to_export="${existing_users[$((export_choice-1))]}"
             export_path="$HOME/vpn_config/${user_to_export}_config.ovpn"
-            cp "/home/$CURRENT_USER/ovpns/$user_to_export.ovpn" "$export_path"
+            cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
             
             # Envoi d'une notification sur Discord avec le fichier exporté
             send_discord_message "Configuration de l'utilisateur exportée : $user_to_export" "$export_path"
@@ -688,7 +692,7 @@ step12() {
   
   # Sauvegarde des utilisateurs
   mkdir -p "$HOME/vpn_config"
-  ls "/home/$CURRENT_USER/ovpns"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "$HOME/vpn_config/vpn_users"
+  ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "$HOME/vpn_config/vpn_users"
   
   echo -e "\n${LIGHT_BLUE}Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users${NC}"
   send_discord_message "Liste des utilisateurs sauvegardée dans $HOME/vpn_config/vpn_users"
