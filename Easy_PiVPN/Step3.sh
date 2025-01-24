@@ -5,6 +5,7 @@ NC="\033[0m"              # Reset color
 
 # Step 3 : Install OpenVPN
 step3() {
+  clear
   echo -e "\n${GRAY_BLUE}=== Étape 3 : Installing OpenVPN ===${NC}"
   sudo apt install -y openvpn
   echo
