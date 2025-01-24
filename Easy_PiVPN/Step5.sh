@@ -57,3 +57,5 @@ step5() {
   echo "Network configuration process completed."
   echo
 }
+
+step5
