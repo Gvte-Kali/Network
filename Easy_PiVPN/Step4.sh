@@ -5,6 +5,7 @@ NC="\033[0m"              # Reset color
 
 # Step 4: Display detailed network information
 step4() {
+  clear
   echo -e "\n${GRAY_BLUE}=== Step 4: Network Information ===${NC}"
   
   # Using the ip command and resolvconf command to retrieve information
