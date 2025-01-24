@@ -8,8 +8,10 @@ NC="\033[0m"              # Reset color
 rustdesk_link="https://github.com/rustdesk/rustdesk/releases/download/1.3.7/rustdesk-1.3.7-x86_64.deb"
 rustdesk_version="1.3.7"
 
+
 # Step 2: Download and install RustDesk
 step2() {
+  clear
   echo -e "\n${GRAY_BLUE}=== Step 2: Installing RustDesk ===${NC}"
   
   # Check if RustDesk is installed
