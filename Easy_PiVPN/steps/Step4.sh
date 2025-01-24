@@ -1,6 +1,9 @@
 # Define colors
 GRAY_BLUE="\033[1;34m"    # 
 LIGHT_BLUE="\033[1;36m"   # 
+RED="\033[1;31m"          # Red
+GREEN="\033[1;32m"        # Green
+YELLOW="\033[1;33m"       # Yellow
 NC="\033[0m"              # Reset color
 
 # Step 4: Display detailed network information and check network configuration
@@ -64,4 +67,5 @@ step4() {
   fi
 }
 
+# Call the step4 function to execute it
 step4
