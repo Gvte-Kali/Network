@@ -119,6 +119,8 @@ send_file_to_discord() {
             echo "$((i+1)). $(basename "${files[i]}")"
         done
         echo "0 --> Send all files"
+        echo
+        echo -e "${RED}=====================================${NC}"
         echo "99 --> Return to the main menu"
 
         read -p "Select a file by number: " file_choice
@@ -189,8 +191,9 @@ PiVPN_Mgmt() {
     echo "2 --> Create a new user"
     echo "3 --> Delete a user"
     echo "4 --> Export a user's configuration"
-    echo "5 --> Send files to Discord"  # New option for sending files
-    echo -e "${WHITE}=========================================${NC}"
+    echo "5 --> Send files to Discord"  # New option for sending file
+    echo
+    echo -e "${RED}=====================================${NC}"
     echo "0. Return to the main menu"
     
     read -p " --> " user_choice
@@ -411,7 +414,8 @@ display_steps() {
   echo "9 --> Install PiVPN"
   echo "10 --> Configure routing and NAT VPN on Raspberry Pi"
   echo "11 --> Configure NAT and port forwarding on router"
-  echo -e "${WHITE}=========================================${NC}"
+  echo
+  echo -e "${RED}=====================================${NC}"
   echo "99 --> Return to Main Menu"
   echo
 }
