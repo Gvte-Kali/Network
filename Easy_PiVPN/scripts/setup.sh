@@ -23,7 +23,7 @@ main_menu() {
   echo
   echo -e "${RED}=====================================${NC}"
   echo
-  echo "0 --> Exit"
+  echo "${RED}0 --> Exit${NC}"
   echo
   read -p "-->  " main_choice
 }
@@ -143,7 +143,10 @@ send_file_to_discord() {
         echo
         echo -e "${RED}=====================================${NC}"
         echo
-        echo "99 --> Return to the main menu"
+        echo "${RED}99 --> Return to the main menu${NC}"
+        echo
+        echo
+        echo
 
         read -p "Select a file by number: " file_choice
         
@@ -225,7 +228,9 @@ PiVPN_Mgmt() {
     echo
     echo -e "${RED}=====================================${NC}"
     echo
-    echo "0. Return to the main menu"
+    echo "${RED}0 --> Return to the main menu${NC}"
+    echo
+    echo
 
     read -p " --> " user_choice
 
@@ -447,7 +452,7 @@ display_steps() {
   echo
   echo -e "${WHITE}=========================================${NC}"
   echo
-  echo "99 --> Return to Main Menu"
+  echo "${RED}99 --> Return to Main Menu${NC}"
   echo
 }
 
