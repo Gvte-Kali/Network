@@ -196,8 +196,6 @@ PiVPN_Mgmt() {
   fi
 
   OVPN_DIR="/home/$username/ovpns/"  # Directory for OVPN files
-  clear
-  echo -e "\n${GRAY_BLUE}=== Step 12: OpenVPN User Management ===${NC}"
 
   # Check if PiVPN is installed
   if ! command -v pivpn &> /dev/null; then
@@ -208,6 +206,7 @@ PiVPN_Mgmt() {
 
   # User management menu
   while true; do
+    clear
     echo -e "\n${LIGHT_BLUE}OpenVPN User Management Options:${NC}"
     echo "1 --> List existing users"
     echo "2 --> Create a new user"
