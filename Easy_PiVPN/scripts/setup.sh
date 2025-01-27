@@ -207,6 +207,7 @@ PiVPN_Mgmt() {
   # User management menu
   while true; do
     clear
+    echo
     echo -e "\n${LIGHT_BLUE}OpenVPN User Management Options:${NC}"
     echo "1 --> List existing users"
     echo "2 --> Create a new user"
