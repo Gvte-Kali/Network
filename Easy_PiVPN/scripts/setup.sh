@@ -33,14 +33,6 @@ check_prerequisites() {
      exit 1
   fi
 
-  # Check dependencies
-  dependencies=("curl" "wget" "jq")
-  for dep in "${dependencies[@]}"; do
-    if ! command -v "$dep" &> /dev/null; then
-      echo "Installing $dep..."
-      sudo apt install -y "$dep"
-    fi
-  done
 }
 
 
