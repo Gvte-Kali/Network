@@ -1,12 +1,17 @@
 #!/bin/bash
 
-# Récupérer l'utilisateur actuel
-CURRENT_USER=$(whoami)
+# Retrieve the username from /tmp/username.txt
+if [[ -f /tmp/username.txt ]]; then
+    username=$(cat /tmp/username.txt) 
+else
+    echo "Error: /tmp/username.txt not found. Please run the username script first."
+    return 1
+fi
 
 # Chemins des fichiers de configuration
 OPENVPN_CONFIG="/etc/openvpn/server/server.conf"
-CLIENT_CONFIGS_DIR="/home/$CURRENT_USER/ovpns"
-VPN_CONFIG_DIR="$HOME/vpn_config"
+CLIENT_CONFIGS_DIR="/home/$username/ovpns"
+VPN_CONFIG_DIR="/home/$username/vpn_config"
 LOG_FILE="$VPN_CONFIG_DIR/ip_change_log.txt"
 
 # Créer le répertoire de logs s'il n'existe pas
@@ -92,7 +97,7 @@ fi
 
 # Préparer le message Discord
 message="🌐 Mise à jour de l'adresse IP publique\n"
-message+="👤 Utilisateur : $CURRENT_USER\n"
+message+="👤 Utilisateur : $username\n"
 message+="📍 Nouvelle adresse IP : $current_public_ip\n"
 message+="📅 Date : $(date)\n"
 message+="📦 Fichiers de configuration des utilisateurs VPN joints."
