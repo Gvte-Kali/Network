@@ -216,7 +216,7 @@ PiVPN_Mgmt() {
     # Check PiVPN installation
     if ! command -v pivpn &> /dev/null; then
         echo -e "${LIGHT_BLUE}PiVPN is not installed.${NC}"
-        echo "Install PiVPN in Step 9."
+        echo "Please install PiVPN in Step 9."
         return 1
     fi
 
@@ -225,11 +225,11 @@ PiVPN_Mgmt() {
         local users=$(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
         
         if [ -z "$users" ]; then
-            echo "No existing users."
+            echo "No existing users found."
             return 1
         fi
         
-        echo "Existing Users:"
+        echo "Existing VPN Users:"
         echo "$users"
         return 0
     }
@@ -242,39 +242,47 @@ PiVPN_Mgmt() {
         echo "2. Create New User"
         echo "3. Delete User"
         echo "4. Export User Configuration"
-        echo "0. Return to Main Menu"
+        echo "0. Exit to Main Menu"
         echo -e "${RED}=====================================${NC}"
 
-        read -p "Your Choice: " user_choice
+        read -p "Select an option: " user_choice
 
         case "$user_choice" in
             1)
                 # List users
                 if list_users; then
-                    send_discord_message "VPN Users List:" 
+                    # Retrieve user list
+                    local users=$(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+                    
+                    # Send list to Discord if not empty
+                    if [ -n "$users" ]; then
+                        send_discord_message "Current VPN Users:
+$users"
+                    fi
                 fi
                 ;;
 
             2)
                 # Add a new user
                 while true; do
-                    read -p "New Username (no spaces): " new_user
+                    read -p "Enter new username (no spaces): " new_user
 
                     # Username validation
                     if [[ ! "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-                        echo "Invalid username."
+                        echo "Invalid username format."
                         continue
                     fi
 
                     # Check if user exists
                     if [ -f "$OVPN_DIR/$new_user.ovpn" ]; then
-                        echo "User already exists."
-                        read -p "Choose another name? (Y/n): " retry_choice
+                        echo "A user with this name already exists."
+                        read -p "Would you like to choose another name? (Y/n): " retry_choice
                         [[ "$retry_choice" =~ ^[Nn]$ ]] && break
                         continue
                     fi
 
                     # User creation
+                    echo "Creating new VPN user: $new_user"
                     sudo pivpn -a -n "$new_user"
                     sleep 2
 
@@ -284,7 +292,7 @@ PiVPN_Mgmt() {
                         send_discord_message "New VPN User Created: $new_user" "$user_config"
                         echo "User $new_user created successfully."
                     else
-                        echo "Error creating user."
+                        echo "Failed to create user configuration."
                     fi
                     break
                 done
@@ -295,11 +303,11 @@ PiVPN_Mgmt() {
                 mapfile -t existing_users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
                 
                 if [ ${#existing_users[@]} -eq 0 ]; then
-                    echo "No users to delete."
+                    echo "No users available to delete."
                     continue
                 fi
 
-                echo "Users:"
+                echo "Available Users:"
                 for i in "${!existing_users[@]}"; do
                     echo "$((i+1)). ${existing_users[i]}"
                 done
@@ -311,9 +319,10 @@ PiVPN_Mgmt() {
                    [ "$delete_choice" -le "${#existing_users[@]}" ]; then
                     
                     user_to_delete="${existing_users[$((delete_choice-1))]}"
+                    echo "Removing VPN user: $user_to_delete"
                     sudo pivpn -r "$user_to_delete"
-                    send_discord_message "VPN User Deleted: $user_to_delete"
-                    echo "User $user_to_delete deleted."
+                    send_discord_message "VPN User Removed: $user_to_delete"
+                    echo "User $user_to_delete has been deleted."
                 fi
                 ;;
 
@@ -322,11 +331,11 @@ PiVPN_Mgmt() {
                 mapfile -t existing_users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
                 
                 if [ ${#existing_users[@]} -eq 0 ]; then
-                    echo "No users to export."
+                    echo "No users available to export."
                     continue
                 fi
 
-                echo "Users:"
+                echo "Available Users:"
                 for i in "${!existing_users[@]}"; do
                     echo "$((i+1)). ${existing_users[i]}"
                 done
@@ -343,7 +352,7 @@ PiVPN_Mgmt() {
                     mkdir -p "/home/$username/vpn_config"
                     cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
                     
-                    send_discord_message "Configuration Exported: $user_to_export" "$export_path"
+                    send_discord_message "VPN Configuration Exported: $user_to_export" "$export_path"
                     echo "Configuration for $user_to_export exported to $export_path"
                 fi
                 ;;
@@ -353,7 +362,7 @@ PiVPN_Mgmt() {
                 ;;
 
             *)
-                echo "Invalid choice."
+                echo "Invalid option. Please try again."
                 ;;
         esac
 
@@ -364,7 +373,6 @@ PiVPN_Mgmt() {
     mkdir -p "/home/$username/vpn_config"
     find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//' > "/home/$username/vpn_config/vpn_users"
 
-    send_discord_message "User list saved in /home/$username/vpn_config/vpn_users"
     echo "User list saved."
 }
 
