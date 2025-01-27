@@ -45,12 +45,14 @@ step4() {
     select opt in "${options[@]}"; do
       case $opt in
         "Yes, skip IP configuration")
+          # Create a flag file to indicate skipping steps 5 and 6
+          touch /tmp/skip_network_config
           echo "Skipping steps 5 and 6."
-          i=7  # Increment i to skip to step 7
-          return 0  # Successfully skip the steps
+          break
           ;;
         "No, proceed with IP configuration")
-          # Continue with steps 5 and 6
+          # Remove the flag file if it exists
+          rm -f /tmp/skip_network_config
           break
           ;;
         *) 
