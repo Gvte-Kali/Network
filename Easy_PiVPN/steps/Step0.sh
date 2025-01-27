@@ -6,9 +6,9 @@ NC="\033[0m"
 # Step 0: Preparing directories and configuration files
 step0() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 0: Preparing directories ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Step 0: Preparing Directories ===${NC}"
 
-    # Check dependencies
+  # Check dependencies
   dependencies=("curl" "wget" "jq")
   for dep in "${dependencies[@]}"; do
     if ! command -v "$dep" &> /dev/null; then
@@ -32,9 +32,26 @@ step0() {
   touch "/home/$username/vpn_config/install_log.txt"
   touch "/home/$username/vpn_config/temp_config.txt"
 
-  # Retrieve the public IP address
-  public_ip=$(curl -s ifconfig.me)
-  echo "$public_ip" > "/home/$username/vpn_config/public_ip"
+  # Retrieve the public IPv4 address
+  public_ip=$(curl -4 -s ifconfig.me)
+  
+  # Validate that the IP is an IPv4 address
+  if [[ $public_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "$public_ip" > "/home/$username/vpn_config/public_ip"
+    echo "Public IPv4 address retrieved: $public_ip"
+  else
+    # Fallback method if the first method fails
+    public_ip=$(curl -s https://ipv4.icanhazip.com)
+    
+    # Validate again
+    if [[ $public_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "$public_ip" > "/home/$username/vpn_config/public_ip"
+      echo "Public IPv4 address retrieved: $public_ip"
+    else
+      echo "Error: Unable to retrieve a valid IPv4 address"
+      return 1
+    fi
+  fi
 
   echo "Directories and configuration files created."
   echo
