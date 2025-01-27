@@ -40,35 +40,35 @@ check_prerequisites() {
 get_user_name() {
     # Get list of all users with login shells
     local users=($(getent passwd | awk -F: '$7 ~ /\/bin\/bash|\/bin\/zsh|\/bin\/sh/ {print $1}'))
-    
+
     # Check if any users are found
     if [ ${#users[@]} -eq 0 ]; then
         echo "No users found with login shells."
         return 1
     fi
-    
+
     # Display available users
     echo -e "${LIGHT_BLUE}Available Users:${NC}"
     for i in "${!users[@]}"; do
         echo "$((i+1)). ${users[i]}"
     done
-    
+
     # User selection
     local selection
     while true; do
         read -p "Select a user by number ( choose root only if you know what you are doing ) (1-${#users[@]}): " selection
-        
+
         # Validate selection
         if [[ "$selection" =~ ^[0-9]+$ ]] && 
            [ "$selection" -ge 1 ] && 
            [ "$selection" -le ${#users[@]} ]; then
-            
+
             # Adjust for zero-based indexing
             local chosen_user="${users[$((selection-1))]}"
-            
+
             # Confirm selection
             read -p "You selected $chosen_user. Is this correct? (Y/n): " confirm
-            
+
             if [[ "$confirm" =~ ^[Yy]$ ]] || [ -z "$confirm" ]; then
                 # Save username to temporary file
                 echo "$chosen_user" > /tmp/username.txt
@@ -79,16 +79,6 @@ get_user_name() {
             echo "Invalid selection. Please choose a number between 1 and ${#users[@]}."
         fi
     done
-}
-
-# Function to send a message to Discord
-send_discord_message() {
-    local message="$1"
-    # Votre logique d'envoi de message Discord ici
-    # Par exemple :
-    curl -X POST -H "Content-Type: application/json" \
-         -d "{\"content\":\"$message\"}" \
-         "$DISCORD_WEBHOOK_URL"
 }
 
 # Function to send files to Discord
@@ -119,8 +109,6 @@ send_file_to_discord() {
             echo "$((i+1)). $(basename "${files[i]}")"
         done
         echo "0 --> Send all files"
-        echo
-        echo -e "${RED}=====================================${NC}"
         echo "99 --> Return to the main menu"
 
         read -p "Select a file by number: " file_choice
@@ -134,8 +122,6 @@ send_file_to_discord() {
                     filename=$(basename "$file")
                     # Use printf to handle newlines and escape special characters
                     file_content=$(printf '%s' "$(cat "$file")")
-                    # Escape double quotes and backslashes
-                    file_content=$(printf '%s' "$file_content" | sed 's/\\/\\\\/g; s/"/\\"/g')
                     send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
                 done
                 echo "All files sent to Discord."
@@ -145,8 +131,6 @@ send_file_to_discord() {
                 filename=$(basename "$selected_file")
                 # Use printf to handle newlines and escape special characters
                 file_content=$(printf '%s' "$(cat "$selected_file")")
-                # Escape double quotes and backslashes
-                file_content=$(printf '%s' "$file_content" | sed 's/\\/\\\\/g; s/"/\\"/g')
                 send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
                 echo "File sent to Discord."
             else
@@ -160,6 +144,26 @@ send_file_to_discord() {
             echo "Invalid choice. Please try again."
         fi
     done
+}
+
+# Function to send a message to Discord
+send_discord_message() {
+    local message="$1"
+    local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
+    
+    if [ -f "$webhook_file" ]; then
+        local discord_webhook=$(cat "$webhook_file")
+        
+        # Escape newlines and quotes for JSON
+        message=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ')
+        
+        # Send message
+        curl -X POST "$discord_webhook" \
+             -H "Content-Type: application/json" \
+             -d "{\"content\":\"$message\"}"
+    else
+        echo "Discord webhook file not found."
+    fi
 }
 
 # PiVPN Management function
@@ -191,19 +195,18 @@ PiVPN_Mgmt() {
     echo "2 --> Create a new user"
     echo "3 --> Delete a user"
     echo "4 --> Export a user's configuration"
-    echo "5 --> Send files to Discord"  # New option for sending file
-    echo
-    echo -e "${RED}=====================================${NC}"
+    echo "5 --> Send files to Discord"  # New option for sending files
+    echo -e "${WHITE}=========================================${NC}"
     echo "0. Return to the main menu"
-    
+
     read -p " --> " user_choice
-    
+
     case "$user_choice" in
       1)
         # List existing users
         echo -e "\n${LIGHT_BLUE}Existing OpenVPN Users:${NC}"
         existing_users=$(ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//')
-        
+
         if [ -z "$existing_users" ]; then
           echo "No existing users."
         else
@@ -212,19 +215,19 @@ PiVPN_Mgmt() {
           send_discord_message "List of VPN users:\n$existing_users"
         fi
         ;;
-      
+
       2)
         # Add a new user
         while true; do
           read -p "Enter the username (no spaces): " new_user
-          
+
           # Validate the username
           if [[ "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
             # Check if the user already exists
             if [ -f "$OVPN_DIR/$new_user.ovpn" ]; then
               echo -e "${GRAY_BLUE}A user with this name already exists.${NC}"
               read -p "Would you like to choose another name? (Y/n) : " retry_choice
-              
+
               if [[ "$retry_choice" =~ ^[Nn]$ ]]; then
                 break
               fi
@@ -232,21 +235,21 @@ PiVPN_Mgmt() {
               # Create the user
               echo "Creating user $new_user..."
               sudo pivpn -a -n "$new_user"
-              
+
               # Wait for the creation to finish
               sleep 2
-              
+
               user_config="$OVPN_DIR/$new_user.ovpn"
-              
+
               if [ -f "$user_config" ]; then
                 # Send the message and file to Discord
                 send_discord_message "New VPN user created: $new_user" "$user_config"
-                
+
                 echo -e "\n${LIGHT_BLUE}Configuration file created and sent to Discord.${NC}"
               else
                 echo -e "${GRAY_BLUE}Error: The configuration file was not created.${NC}"
               fi
-              
+
               break
             fi
           else
@@ -254,36 +257,36 @@ PiVPN_Mgmt() {
           fi
         done
         ;;
-      
+
       3)
         # Delete a user
         echo -e "\n${LIGHT_BLUE}Delete an OpenVPN user:${NC}"
         existing_users=($(ls "$OVPN_DIR"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
-        
+
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "No existing users to delete."
           continue
         fi
-        
+
         echo "Existing users:"
         for i in "${!existing_users[@]}"; do
           echo "$((i+1)). ${existing_users[i]}"
         done
-        
+
         while true; do
           read -p "Select the user to delete (1-${#existing_users[@]}) : " delete_choice
-          
+
           if [[ "$delete_choice" =~ ^[0-9]+$ ]] && 
              [ "$delete_choice" -ge 1 ] && 
              [ "$delete_choice" -le "${#existing_users[@]}" ]; then
-            
+
             user_to_delete="${existing_users[$((delete_choice-1))]}"
             echo "Deleting user $user_to_delete..."
             sudo pivpn -r "$user_to_delete"
-            
+
             # Send a notification to Discord
             send_discord_message "VPN user deleted: $user_to_delete"
-            
+
             echo "User   $user_to_delete deleted."
             break
           else
@@ -291,33 +294,33 @@ PiVPN_Mgmt() {
           fi
         done
         ;;
-      
+
       4)
         # Export a user's configuration
         echo -e "\n${LIGHT_BLUE}Export a user's OpenVPN configuration:${NC}"
         existing_users=($(ls "$OVPN_DIR"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
-        
+
         if [ ${#existing_users[@]} -eq 0 ]; then
           echo "No existing users to export."
           continue
         fi
-        
+
         echo "Existing users:"
         for i in "${!existing_users[@]}"; do
           echo "$((i+1)). ${existing_users[i]}"
         done
-        
+
         while true; do
           read -p "Select the user to export (1-${#existing_users[@]}) : " export_choice
-          
+
           if [[ "$export_choice" =~ ^[0-9]+$ ]] && 
              [ "$export_choice" -ge 1 ] && 
              [ "$export_choice" -le "${#existing_users[@]}" ]; then
-            
+
             user_to_export="${existing_users[$((export_choice-1))]}"
             export_path="/home/$username/vpn_config/${user_to_export}_config.ovpn"
             cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
-            
+
             # Send a notification to Discord with the exported file
             send_discord_message "User  configuration exported: $user_to_export" "$export_path"
             echo "User  configuration for $user_to_export exported to $export_path."
@@ -327,29 +330,29 @@ PiVPN_Mgmt() {
           fi
         done
         ;;
-      
+
       5)
         send_file_to_discord  # Call the function to send files to Discord
         ;;
-      
+
       0)
         # Return to the main menu
         break
         ;;
-      
+
       *)
         echo "Invalid choice. Please try again."
         ;;
     esac
-    
+
     # Pause for visibility
     read -p "Press Enter to continue..."
   done
-  
+
   # Save users
   mkdir -p "/home/$username/vpn_config"
   ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "/home/$username/vpn_config/vpn_users"
-  
+
   echo -e "\n${LIGHT_BLUE}List of users saved in /home/$username/vpn_config/vpn_users${NC}"
   send_discord_message "List of users saved in /home/$username/vpn_config/vpn_users"
   echo
@@ -359,19 +362,19 @@ PiVPN_Mgmt() {
 fetch_and_run_script() {
     local url="$1"
     local script_path="/tmp/step_$(date +%s).sh"
-    
+
     # Download the script
     if ! curl -s "$url" > "$script_path"; then
         echo "Error downloading the script"
         return 1
     fi
-    
+
     # Make the script executable
     chmod +x "$script_path"
-    
+
     # Execute the script with sudo
     sudo bash "$script_path"
-    
+
     # Clean up the temporary script
     rm -f "$script_path"
 }
@@ -380,20 +383,20 @@ fetch_and_run_script() {
 run_step() {
   local step_number=$1
   echo "Executing Step $step_number..."
-  
+
   # Check if we should skip steps 5 and 6
   if [[ $step_number -eq 5 ]] && [[ -f /tmp/skip_network_config_step5 ]]; then
     echo "Skipping step 5 as per previous configuration."
     rm -f /tmp/skip_network_config_step5
     return 0
   fi
-  
+
   if [[ $step_number -eq 6 ]] && [[ -f /tmp/skip_network_config_step6 ]]; then
     echo "Skipping step 6 as per previous configuration."
     rm -f /tmp/skip_network_config_step6
     return 0
   fi
-  
+
   local url="https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/steps/Step${step_number}.sh"
   fetch_and_run_script "$url"
 }
@@ -414,8 +417,7 @@ display_steps() {
   echo "9 --> Install PiVPN"
   echo "10 --> Configure routing and NAT VPN on Raspberry Pi"
   echo "11 --> Configure NAT and port forwarding on router"
-  echo
-  echo -e "${RED}=====================================${NC}"
+  echo -e "${WHITE}=========================================${NC}"
   echo "99 --> Return to Main Menu"
   echo
 }
@@ -465,7 +467,6 @@ main_menu_flow() {
 
 cat << EOF
 ______________________________________________________________________________________________
-
 888      d888                             888          d8888                            d8888  
 888     d8888                             888         d8P888                           d8P888  
 888       888                             888        d8P 888                          d8P 888  
@@ -478,10 +479,6 @@ ________________________________________________________________________________
               Y8b d88P          888                                                           
                 "Y88P"           888                                                           
 ______________________________________________________________________________________________
-
-
-
-
 EOF
 
 # Call the prerequisite check
