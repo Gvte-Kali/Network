@@ -84,29 +84,11 @@ get_user_name() {
 # Function to send a message to Discord
 send_discord_message() {
     local message="$1"
-    local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
-    local file_path="$2"
-
-    if [ -f "$webhook_file" ]; then
-        local discord_webhook=$(cat "$webhook_file")
-        
-        if [ -n "$file_path" ] && [ -f "$file_path" ]; then
-            # Correct the file path
-            local absolute_file_path=$(realpath "$file_path")
-            
-            # Send with file
-            curl -F "payload_json={\"content\":\"$message\"}" \
-                 -F "file=@$absolute_file_path" \
-                 "$discord_webhook"
-        else
-            # Simple message send
-            curl -X POST "$discord_webhook" \
-                 -H "Content-Type: application/json" \
-                 -d "{\"content\":\"$message\"}"
-        fi
-    else
-        echo "Discord webhook file not found."
-    fi
+    # Votre logique d'envoi de message Discord ici
+    # Par exemple :
+    curl -X POST -H "Content-Type: application/json" \
+         -d "{\"content\":\"$message\"}" \
+         "$DISCORD_WEBHOOK_URL"
 }
 
 # Function to send files to Discord
@@ -148,16 +130,22 @@ send_file_to_discord() {
                 # Send all files
                 for file in "${files[@]}"; do
                     filename=$(basename "$file")
-                    file_content=$(cat "$file")
-                    send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`"
+                    # Use printf to handle newlines and escape special characters
+                    file_content=$(printf '%s' "$(cat "$file")")
+                    # Escape double quotes and backslashes
+                    file_content=$(printf '%s' "$file_content" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                    send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
                 done
                 echo "All files sent to Discord."
             elif [ "$file_choice" -ge 1 ] && [ "$file_choice" -le ${#files[@]} ]; then
                 # Send the selected file
                 local selected_file="${files[$((file_choice-1))]}"
                 filename=$(basename "$selected_file")
-                file_content=$(cat "$selected_file")
-                send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`"
+                # Use printf to handle newlines and escape special characters
+                file_content=$(printf '%s' "$(cat "$selected_file")")
+                # Escape double quotes and backslashes
+                file_content=$(printf '%s' "$file_content" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
                 echo "File sent to Discord."
             else
                 echo "Invalid choice. Please try again."
