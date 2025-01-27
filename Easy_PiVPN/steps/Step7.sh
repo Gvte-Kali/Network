@@ -4,11 +4,7 @@ LIGHT_BLUE="\033[1;36m"   # Light blue
 RED="\033[1;31m"          # Red
 GREEN="\033[1;32m"        # Green
 YELLOW="\033[1;33m"       # Yellow
-MAGENTA="\033[1;35m"      # Magenta
-CYAN="\033[1;36m"         # Cyan
-WHITE="\033[1;37m"        # White
 NC="\033[0m"              # Reset color
-
 
 # Step 7: Guide for configuring autologin
 step7() {
@@ -18,7 +14,6 @@ step7() {
   # Detect current autologin settings
   _detect_autologin() {
     local lightdm_conf="/etc/lightdm/lightdm.conf"
-    local config_txt="/boot/config.txt"
     local autologin_status="Not configured"
     
     # Check LightDM configuration
@@ -66,8 +61,7 @@ step7() {
         PS3="Select an option: "
         options=(
           "Open a tutorial about autologin"
-          "Review autologin instructions again"
-          "Skip to the next step"
+          "Review autologin instructions"
           "Exit"
         )
         
@@ -90,15 +84,11 @@ step7() {
               break
               ;;
             3)
-              echo "Skipping autologin configuration..."
-              return 0
-              ;;
-            4)
               echo "Exiting autologin configuration..."
               return 1
               ;;
             *)
-              echo "Invalid option. Please select 1-4."
+              echo "Invalid option. Please select 1-3."
               ;;
           esac
         done
