@@ -44,4 +44,4 @@ step10() {
     echo -e "${GREEN}Configuration complete. LAN access from OpenVPN enabled.${NC}"
 }
 
-Step10
+step10
