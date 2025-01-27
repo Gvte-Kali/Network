@@ -23,7 +23,7 @@ main_menu() {
   echo
   echo -e "${RED}=====================================${NC}"
   echo
-  echo "${RED}0 --> Exit${NC}"
+  echo "0 --> Exit"
   echo
   read -p "-->  " main_choice
 }
@@ -143,7 +143,7 @@ send_file_to_discord() {
         echo
         echo -e "${RED}=====================================${NC}"
         echo
-        echo "${RED}99 --> Return to the main menu${NC}"
+        echo "99 --> Return to the main menu"
         echo
         echo
         echo
@@ -228,7 +228,7 @@ PiVPN_Mgmt() {
     echo
     echo -e "${RED}=====================================${NC}"
     echo
-    echo "${RED}0 --> Return to the main menu${NC}"
+    echo "0 --> Return to the main menu"
     echo
     echo
 
@@ -244,8 +244,6 @@ PiVPN_Mgmt() {
           echo "No existing users."
         else
           echo "$existing_users"
-          # Send the list to Discord
-          send_discord_message "List of VPN users:
 
 $existing_users"
         fi
@@ -452,7 +450,7 @@ display_steps() {
   echo
   echo -e "${WHITE}=========================================${NC}"
   echo
-  echo "${RED}99 --> Return to Main Menu${NC}"
+  echo "99 --> Return to Main Menu"
   echo
 }
 
