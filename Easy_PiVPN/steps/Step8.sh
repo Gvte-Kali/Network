@@ -12,6 +12,7 @@ NC="\033[0m"              # Reset color
 
 # Step 8: Discord Cronjob Configuration
 step8() {
+  clear
   echo -e "\n${GRAY_BLUE}=== Step 8: Discord Cronjob Configuration ===${NC}"
 
   # Retrieve the username from /tmp/username.txt
