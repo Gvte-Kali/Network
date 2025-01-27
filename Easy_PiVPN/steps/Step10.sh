@@ -11,6 +11,7 @@ NC="\033[0m"              # Reset color
 
 # Step 10: Routing and NAT Configuration between VPN and Physical Network
 step10() {
+    clear
     echo -e "\n${CYAN}=== OpenVPN Configuration for LAN Access ===${NC}"
 
     # Identify network interfaces
