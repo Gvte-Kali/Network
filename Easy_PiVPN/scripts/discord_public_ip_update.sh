@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Retrieve the username from /tmp/username.txt
-if [[ -f /tmp/username.txt ]]; then
-    username=$(cat /tmp/username.txt) 
+# Retrieve the username from cron_user.txt or use the passed environment variable
+if [[ -n "$USERNAME" ]]; then
+    username="$USERNAME"
+elif [[ -f /home/*/vpn_config/cron_user.txt ]]; then
+    username=$(cat /home/*/vpn_config/cron_user.txt)
 else
     echo "Unable to determine username" >> "/home/$username/vpn_config/ip_change_log.txt"
     exit 1
@@ -15,6 +17,7 @@ VPN_CONFIG_DIR="/home/$username/vpn_config"
 LOG_FILE="$VPN_CONFIG_DIR/ip_change_log.txt"
 PUBLIC_IP_FILE="$VPN_CONFIG_DIR/public_ip.txt"
 TEMP_CONFIG_DIR=$(mktemp -d)
+
 
 # Function to obtain public IPv4 address
 get_ipv4() {
@@ -39,7 +42,7 @@ get_ipv4() {
 # Function to send a message to Discord
 send_discord_message() {
     local message="$1"
-    local webhook_file="$VPN_CONFIG_DIR/discord_webhook.txt"
+    local webhook_file="${DISCORD_WEBHOOK_FILE:-$VPN_CONFIG_DIR/discord_webhook.txt}"
     local file_path="$2"
 
     if [ -f "$webhook_file" ]; then
@@ -58,7 +61,6 @@ send_discord_message() {
         fi
     fi
 }
-
 # Retrieve current public IPv4 address
 current_public_ip=$(get_ipv4)
 
