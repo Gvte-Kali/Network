@@ -112,6 +112,7 @@ send_discord_message() {
     fi
 }
 
+
 # Function to send files to Discord
 send_file_to_discord() {
     clear
@@ -126,10 +127,10 @@ send_file_to_discord() {
     local config_dir="/home/$username/vpn_config/"
     
     while true; do  # Start the loop
-        # List files in the directory
+        # List files in the directory, excluding .sh files
         clear
         echo -e "${LIGHT_BLUE}=== Select a file to send to Discord ===${NC}"
-        mapfile -t files < <(find "$config_dir" -maxdepth 1 -type f)
+        mapfile -t files < <(find "$config_dir" -maxdepth 1 -type f ! -name "*.sh")
         
         if [ ${#files[@]} -eq 0 ]; then
             echo "No files found in $config_dir."
@@ -162,10 +163,7 @@ send_file_to_discord() {
 
 \`\`\`
 $file_content
-\`\`\`
-
-
-"
+\`\`\`"
                 done
                 echo "All files sent to Discord."
             elif [ "$file_choice" -ge 1 ] && [ "$file_choice" -le ${#files[@]} ]; then
@@ -177,10 +175,7 @@ $file_content
 
 \`\`\`
 $file_content
-\`\`\`
-
-
-"
+\`\`\`"
                 echo "File sent to Discord."
             else
                 echo "Invalid choice. Please try again."
