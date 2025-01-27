@@ -196,195 +196,176 @@ $file_content
 }
 
 
-# PiVPN Management function
+# PiVPN Management Function
 PiVPN_Mgmt() {
-  clear
-  # Retrieve the username from /tmp/username.txt
-  if [[ -f /tmp/username.txt ]]; then
-    username=$(cat /tmp/username.txt)
-  else
-    echo "Error: /tmp/username.txt not found. Please run the username script first."
-    return 1
-  fi
-
-  OVPN_DIR="/home/$username/ovpns/"  # Directory for OVPN files
-
-  # Check if PiVPN is installed
-  if ! command -v pivpn &> /dev/null; then
-    echo -e "${LIGHT_BLUE}PiVPN is not installed.${NC}"
-    echo "Please install PiVPN first in Step 9."
-    return 1
-  fi
-
-  # User management menu
-  while true; do
+    # Clear the screen
     clear
-    echo
-    echo -e "\n${LIGHT_BLUE}OpenVPN User Management Options:${NC}"
-    echo "1 --> List existing users"
-    echo "2 --> Create a new user"
-    echo "3 --> Delete a user"
-    echo "4 --> Export a user's configuration"
-    echo
-    echo -e "${RED}=====================================${NC}"
-    echo
-    echo "0 --> Return to the main menu"
-    echo
-    echo
 
-    read -p " --> " user_choice
+    # Retrieve username
+    if [[ ! -f /tmp/username.txt ]]; then
+        echo "Error: /tmp/username.txt not found. Please run the username script first."
+        return 1
+    fi
 
-    case "$user_choice" in
-      1)
-        # List existing users
-        echo -e "\n${LIGHT_BLUE}Existing OpenVPN Users:${NC}"
-        existing_users=$(ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//')
+    username=$(cat /tmp/username.txt)
+    OVPN_DIR="/home/$username/ovpns"
 
-        if [ -z "$existing_users" ]; then
-          echo "No existing users."
-        else
-          echo "$existing_users"
+    # Ensure directory exists, create if necessary
+    mkdir -p "$OVPN_DIR"
 
-$existing_users"
+    # Check PiVPN installation
+    if ! command -v pivpn &> /dev/null; then
+        echo -e "${LIGHT_BLUE}PiVPN is not installed.${NC}"
+        echo "Install PiVPN in Step 9."
+        return 1
+    fi
+
+    # Internal function to list users
+    list_users() {
+        local users=$(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+        
+        if [ -z "$users" ]; then
+            echo "No existing users."
+            return 1
         fi
-        ;;
+        
+        echo "Existing Users:"
+        echo "$users"
+        return 0
+    }
 
-      2)
-        # Add a new user
-        while true; do
-          read -p "Enter the username (no spaces): " new_user
+    # Main menu loop
+    while true; do
+        clear
+        echo -e "${LIGHT_BLUE}=== OpenVPN User Management ===${NC}"
+        echo "1. List Users"
+        echo "2. Create New User"
+        echo "3. Delete User"
+        echo "4. Export User Configuration"
+        echo "0. Return to Main Menu"
+        echo -e "${RED}=====================================${NC}"
 
-          # Validate the username
-          if [[ "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-            # Check if the user already exists
-            if [ -f "$OVPN_DIR/$new_user.ovpn" ]; then
-              echo -e "${GRAY_BLUE}A user with this name already exists.${NC}"
-              read -p "Would you like to choose another name? (Y/n) : " retry_choice
+        read -p "Your Choice: " user_choice
 
-              if [[ "$retry_choice" =~ ^[Nn]$ ]]; then
+        case "$user_choice" in
+            1)
+                # List users
+                if list_users; then
+                    send_discord_message "VPN Users List:" 
+                fi
+                ;;
+
+            2)
+                # Add a new user
+                while true; do
+                    read -p "New Username (no spaces): " new_user
+
+                    # Username validation
+                    if [[ ! "$new_user" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                        echo "Invalid username."
+                        continue
+                    fi
+
+                    # Check if user exists
+                    if [ -f "$OVPN_DIR/$new_user.ovpn" ]; then
+                        echo "User already exists."
+                        read -p "Choose another name? (Y/n): " retry_choice
+                        [[ "$retry_choice" =~ ^[Nn]$ ]] && break
+                        continue
+                    fi
+
+                    # User creation
+                    sudo pivpn -a -n "$new_user"
+                    sleep 2
+
+                    user_config="$OVPN_DIR/$new_user.ovpn"
+                    
+                    if [ -f "$user_config" ]; then
+                        send_discord_message "New VPN User Created: $new_user" "$user_config"
+                        echo "User $new_user created successfully."
+                    else
+                        echo "Error creating user."
+                    fi
+                    break
+                done
+                ;;
+
+            3)
+                # Delete a user
+                mapfile -t existing_users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+                
+                if [ ${#existing_users[@]} -eq 0 ]; then
+                    echo "No users to delete."
+                    continue
+                fi
+
+                echo "Users:"
+                for i in "${!existing_users[@]}"; do
+                    echo "$((i+1)). ${existing_users[i]}"
+                done
+
+                read -p "Select user to delete (1-${#existing_users[@]}): " delete_choice
+
+                if [[ "$delete_choice" =~ ^[0-9]+$ ]] && 
+                   [ "$delete_choice" -ge 1 ] && 
+                   [ "$delete_choice" -le "${#existing_users[@]}" ]; then
+                    
+                    user_to_delete="${existing_users[$((delete_choice-1))]}"
+                    sudo pivpn -r "$user_to_delete"
+                    send_discord_message "VPN User Deleted: $user_to_delete"
+                    echo "User $user_to_delete deleted."
+                fi
+                ;;
+
+            4)
+                # Export configuration
+                mapfile -t existing_users < <(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
+                
+                if [ ${#existing_users[@]} -eq 0 ]; then
+                    echo "No users to export."
+                    continue
+                fi
+
+                echo "Users:"
+                for i in "${!existing_users[@]}"; do
+                    echo "$((i+1)). ${existing_users[i]}"
+                done
+
+                read -p "Select user to export (1-${#existing_users[@]}): " export_choice
+
+                if [[ "$export_choice" =~ ^[0-9]+$ ]] && 
+                   [ "$export_choice" -ge 1 ] && 
+                   [ "$export_choice" -le "${#existing_users[@]}" ]; then
+                    
+                    user_to_export="${existing_users[$((export_choice-1))]}"
+                    export_path="/home/$username/vpn_config/${user_to_export}_config.ovpn"
+                    
+                    mkdir -p "/home/$username/vpn_config"
+                    cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
+                    
+                    send_discord_message "Configuration Exported: $user_to_export" "$export_path"
+                    echo "Configuration for $user_to_export exported to $export_path"
+                fi
+                ;;
+
+            0)
                 break
-              fi
-            else
-              # Create the user
-              echo "Creating user $new_user..."
-              sudo pivpn -a -n "$new_user"
+                ;;
 
-              # Wait for the creation to finish
-              sleep 2
+            *)
+                echo "Invalid choice."
+                ;;
+        esac
 
-              user_config="$OVPN_DIR/$new_user.ovpn"
+        read -p "Press Enter to continue..." pause
+    done
 
-              if [ -f "$user_config" ]; then
-                # Send the message and file to Discord
-                send_discord_message "New VPN user created: $new_user" "$user_config"
+    # Final users list save
+    mkdir -p "/home/$username/vpn_config"
+    find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//' > "/home/$username/vpn_config/vpn_users"
 
-                echo -e "\n${LIGHT_BLUE}Configuration file created and sent to Discord.${NC}"
-              else
-                echo -e "${GRAY_BLUE}Error: The configuration file was not created.${NC}"
-              fi
-
-              break
-            fi
-          else
-            echo "Invalid username. Use only letters, numbers, _ and -."
-          fi
-        done
-        ;;
-
-      3)
-        # Delete a user
-        echo -e "\n${LIGHT_BLUE}Delete an OpenVPN user:${NC}"
-        existing_users=($(ls "$OVPN_DIR"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
-
-        if [ ${#existing_users[@]} -eq 0 ]; then
-          echo "No existing users to delete."
-          continue
-        fi
-
-        echo "Existing users:"
-        for i in "${!existing_users[@]}"; do
-          echo "$((i+1)). ${existing_users[i]}"
-        done
-
-        while true; do
-          read -p "Select the user to delete (1-${#existing_users[@]}) : " delete_choice
-
-          if [[ "$delete_choice" =~ ^[0-9]+$ ]] && 
-             [ "$delete_choice" -ge 1 ] && 
-             [ "$delete_choice" -le "${#existing_users[@]}" ]; then
-
-            user_to_delete="${existing_users[$((delete_choice-1))]}"
-            echo "Deleting user $user_to_delete..."
-            sudo pivpn -r "$user_to_delete"
-
-            # Send a notification to Discord
-            send_discord_message "VPN user deleted: $user_to_delete"
-
-            echo "User   $user_to_delete deleted."
-            break
-          else
-            echo "Invalid choice. Please select a valid number."
-          fi
-        done
-        ;;
-
-      4)
-        # Export a user's configuration
-        echo -e "\n${LIGHT_BLUE}Export a user's OpenVPN configuration:${NC}"
-        existing_users=($(ls "$OVPN_DIR"/*.ovpn | sed 's/.*\///; s/\.ovpn//'))
-
-        if [ ${#existing_users[@]} -eq 0 ]; then
-          echo "No existing users to export."
-          continue
-        fi
-
-        echo "Existing users:"
-        for i in "${!existing_users[@]}"; do
-          echo "$((i+1)). ${existing_users[i]}"
-        done
-
-        while true; do
-          read -p "Select the user to export (1-${#existing_users[@]}) : " export_choice
-
-          if [[ "$export_choice" =~ ^[0-9]+$ ]] && 
-             [ "$export_choice" -ge 1 ] && 
-             [ "$export_choice" -le "${#existing_users[@]}" ]; then
-
-            user_to_export="${existing_users[$((export_choice-1))]}"
-            export_path="/home/$username/vpn_config/${user_to_export}_config.ovpn"
-            cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
-
-            # Send a notification to Discord with the exported file
-            send_discord_message "User configuration exported: $user_to_export" "$export_path"
-            echo "User configuration for $user_to_export exported to $export_path."
-            break
-          else
-            echo "Invalid choice. Please select a valid number."
-          fi
-        done
-        ;;
-
-      0)
-        # Return to the main menu
-        break
-        ;;
-
-      *)
-        echo "Invalid choice. Please try again."
-        ;;
-    esac
-
-    # Pause for visibility
-    read -p "Press Enter to continue..."
-  done
-
-  # Save users
-  mkdir -p "/home/$username/vpn_config"
-  ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "/home/$username/vpn_config/vpn_users"
-
-  echo -e "\n${LIGHT_BLUE}List of users saved in /home/$username/vpn_config/vpn_users${NC}"
-  send_discord_message "List of users saved in /home/$username/vpn_config/vpn_users"
-  echo
+    send_discord_message "User list saved in /home/$username/vpn_config/vpn_users"
+    echo "User list saved."
 }
 
 # Function to fetch and execute a script from a specific URL
