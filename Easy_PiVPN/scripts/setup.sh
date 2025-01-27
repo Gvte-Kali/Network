@@ -83,6 +83,26 @@ get_user_name() {
 }
 
 
+# Function to send a message to Discord
+send_discord_message() {
+    local message="$1"
+    local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
+    
+    if [ -f "$webhook_file" ]; then
+        local discord_webhook=$(cat "$webhook_file")
+        
+        # Utiliser jq pour encoder correctement le message
+        encoded_message=$(echo "$message" | jq -R -s '.')
+        
+        # Envoyer le message avec curl
+        curl -X POST "$discord_webhook" \
+             -H "Content-Type: application/json" \
+             -d "{\"content\":$encoded_message}"
+    else
+        echo "Discord webhook file not found."
+    fi
+}
+
 # Function to send files to Discord
 send_file_to_discord() {
     clear
@@ -126,15 +146,29 @@ send_file_to_discord() {
                 for file in "${files[@]}"; do
                     filename=$(basename "$file")
                     file_content=$(cat "$file")
-                    send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
+                    send_discord_message "📄 File: $filename
+
+\`\`\`
+$file_content
+\`\`\`
+
+
+"
                 done
                 echo "All files sent to Discord."
-            elif [ "$file_choice" -ge 1 ] && [ "$file_choice" -le ${#files[@]} ]; then
+            elif [ "$file_choice" -ge 1 ]] && [ "$file_choice" -le ${#files[@]} ]; then
                 # Send the selected file
                 local selected_file="${files[$((file_choice-1))]}"
                 filename=$(basename "$selected_file")
                 file_content=$(cat "$selected_file")
-                send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
+                send_discord_message "📄 File: $filename
+
+\`\`\`
+$file_content
+\`\`\`
+
+
+"
                 echo "File sent to Discord."
             else
                 echo "Invalid choice. Please try again."
@@ -147,27 +181,6 @@ send_file_to_discord() {
             echo "Invalid choice. Please try again."
         fi
     done
-}
-
-
-# Function to send a message to Discord
-send_discord_message() {
-    local message="$1"
-    local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
-    
-    if [ -f "$webhook_file" ]; then
-        local discord_webhook=$(cat "$webhook_file")
-        
-        # Escape newlines and quotes for JSON
-        message=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g')
-        
-        # Send message
-        curl -X POST "$discord_webhook" \
-             -H "Content-Type: application/json" \
-             -d "{\"content\":\"$message\"}"
-    else
-        echo "Discord webhook file not found."
-    fi
 }
 
 # PiVPN Management function
