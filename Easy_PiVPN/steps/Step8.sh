@@ -56,14 +56,23 @@ step8() {
   cat > "$wrapper_script" << 'EOF'
 #!/bin/bash
 
+# Retrieve the username from cron_user.txt
+if [[ -f /home/*/vpn_config/cron_user.txt ]]; then
+    username=$(cat /home/*/vpn_config/cron_user.txt)
+    vpn_config_dir="/home/$username/vpn_config"
+else
+    echo "Error: Unable to determine username" >&2
+    exit 1
+fi
+
 # Download the script each execution
 wget -O /tmp/update_pivpn_ip.sh "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/discord_public_ip_update.sh"
 
 # Make the script executable
 chmod +x /tmp/update_pivpn_ip.sh
 
-# Execute the script
-/tmp/update_pivpn_ip.sh
+# Execute the script with the webhook and username from the user's vpn_config directory
+USERNAME="$username" DISCORD_WEBHOOK_FILE="$vpn_config_dir/discord_webhook.txt" /tmp/update_pivpn_ip.sh
 
 # Remove the temporary script
 rm /tmp/update_pivpn_ip.sh
