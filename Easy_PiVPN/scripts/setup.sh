@@ -121,22 +121,22 @@ send_file_to_discord() {
 
     local config_dir="/home/$username/vpn_config/"
     
-    # List files in the directory
-    echo -e "${LIGHT_BLUE}=== Select a file to send to Discord ===${NC}"
-    local files=("$config_dir"*)
-    
-    if [ ${#files[@]} -eq 0 ]; then
-        echo "No files found in $config_dir."
-        return 1
-    fi
+    while true; do  # Start the loop
+        # List files in the directory
+        echo -e "${LIGHT_BLUE}=== Select a file to send to Discord ===${NC}"
+        local files=("$config_dir"*)
+        
+        if [ ${#files[@]} -eq 0 ]; then
+            echo "No files found in $config_dir."
+            return 1
+        fi
 
-    for i in "${!files[@]}"; do
-        echo "$((i+1)). $(basename "${files[i]}")"
-    done
-    echo "0. Send all files"
-    echo "99. Return to the main menu"
+        for i in "${!files[@]}"; do
+            echo "$((i+1)). $(basename "${files[i]}")"
+        done
+        echo "0. Send all files"
+        echo "99. Return to the main menu"
 
-    while true; do
         read -p "Select a file by number: " file_choice
         
         if [[ "$file_choice" =~ ^[0-9]+$ ]] && [ "$file_choice" -le $(( ${#files[@]} + 1 )) ]; then
@@ -146,19 +146,20 @@ send_file_to_discord() {
                     send_discord_message "Sending file: $(basename "$file")" "$file"
                 done
                 echo "All files sent to Discord."
-                break
             elif [ "$file_choice" -eq 99 ]; then
                 return  # Return to the main menu
             else
                 # Send the selected file
                 send_discord_message "Sending file: $(basename "${files[$((file_choice-1))]}")" "${files[$((file_choice-1))]}"
                 echo "File sent to Discord."
-                break
             fi
         else
             echo "Invalid choice. Please try again."
         fi
-    done
+
+        # Pause for visibility
+        read -p "Press Enter to continue..."
+    done  # End of the loop
 }
 
 # PiVPN Management function
@@ -186,15 +187,15 @@ PiVPN_Mgmt() {
   # User management menu
   while true; do
     echo -e "\n${LIGHT_BLUE}OpenVPN User Management Options:${NC}"
-    echo "1. List existing users"
-    echo "2. Create a new user"
-    echo "3. Delete a user"
-    echo "4. Export a user's configuration"
-    echo "5. Send files to Discord"  # New option for sending files
+    echo "1 --> List existing users"
+    echo "2 --> Create a new user"
+    echo "3 --> Delete a user"
+    echo "4 --> Export a user's configuration"
+    echo "5 --> Send files to Discord"  # New option for sending files
     echo -e "${WHITE}=========================================${NC}"
     echo "0. Return to the main menu"
     
-    read -p "Your choice: " user_choice
+    read -p " --> " user_choice
     
     case "$user_choice" in
       1)
@@ -400,20 +401,20 @@ run_step() {
 display_steps() {
   echo
   echo -e "${LIGHT_BLUE}=== List of Steps ===${NC}"
-  echo "0. Prepare directories"
-  echo "1. Update packages"
-  echo "2. Install RustDesk"
-  echo "3. Install OpenVPN"
-  echo "4. List network interfaces"
-  echo "5. IP configuration"
-  echo "6. Apply IP configuration"
-  echo "7. Configure autologin"
-  echo "8. Configure Discord cronjob"
-  echo "9. Install PiVPN"
-  echo "10. Configure routing and NAT VPN on Raspberry Pi"
-  echo "11. Configure NAT and port forwarding on router"
+  echo "0 --> Prepare directories"
+  echo "1 --> Update packages"
+  echo "2 --> Install RustDesk"
+  echo "3 --> Install OpenVPN"
+  echo "4 --> List network interfaces"
+  echo "5 --> IP configuration"
+  echo "6 --> Apply IP configuration"
+  echo "7 --> Configure autologin"
+  echo "8 --> Configure Discord cronjob"
+  echo "9 --> Install PiVPN"
+  echo "10 --> Configure routing and NAT VPN on Raspberry Pi"
+  echo "11 --> Configure NAT and port forwarding on router"
   echo -e "${WHITE}=========================================${NC}"
-  echo "99. Return to Main Menu"
+  echo "99 --> Return to Main Menu"
   echo
 }
 
