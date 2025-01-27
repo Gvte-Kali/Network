@@ -138,6 +138,7 @@ PiVPN_Mgmt() {
     echo "2. Create a new user"
     echo "3. Delete a user"
     echo "4. Export a user's configuration"
+    echo -e "${WHITE}=========================================${NC}"
     echo "0. Return to the main menu"
     
     read -p "Your choice: " user_choice
@@ -355,7 +356,6 @@ display_steps() {
   echo "9. Install PiVPN"
   echo "10. Configure routing and NAT VPN on Raspberry Pi"
   echo "11. Configure NAT and port forwarding on router"
-  echo "12. Manage PiVPN users"
   echo -e "${WHITE}=========================================${NC}"
   echo "99. Return to Main Menu"
   echo
