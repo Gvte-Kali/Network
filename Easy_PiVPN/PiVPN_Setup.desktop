@@ -1,9 +1,9 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=PiVPN_Setup
+Name=PiVPN
 Comment=PiVPN Setup and Easy Manager launcher
-Exec=bash -c 'wget -O /tmp/fr_setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/setup.sh && chmod +x /tmp/fr_setup.sh && sudo bash /tmp/fr_setup.sh; read -p \"Appuyez sur Entrée pour fermer...\"'
+Exec=bash -c 'wget -O /tmp/fr_setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh; read -p \"Appuyez sur Entrée pour fermer...\"'
 Icon=network-vpn
 Path=
 Terminal=true
