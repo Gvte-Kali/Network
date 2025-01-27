@@ -195,7 +195,7 @@ PiVPN_Mgmt() {
   fi
 
   OVPN_DIR="/home/$username/ovpns/"  # Directory for OVPN files
-
+  clear
   echo -e "\n${GRAY_BLUE}=== Step 12: OpenVPN User Management ===${NC}"
 
   # Check if PiVPN is installed
