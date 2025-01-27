@@ -11,6 +11,7 @@ NC="\033[0m"              # Reset color
 
 # Step 12: PiVPN User Management
 step12() {
+  clear
   # Retrieve the username from /tmp/username.txt
   if [[ -f /tmp/username.txt ]]; then
     username=$(cat /tmp/username.txt)
