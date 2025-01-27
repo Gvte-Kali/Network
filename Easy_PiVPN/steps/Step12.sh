@@ -33,7 +33,7 @@ step12() {
   # Function to send a message to Discord
   send_discord_message() {
     local message="$1"
-    local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
+    local webhook_file="$HOME/vpn_config/discord_webhook.txt"
     local file_path="$2"
 
     if [ -f "$webhook_file" ]; then
@@ -186,7 +186,7 @@ step12() {
              [ "$export_choice" -le "${#existing_users[@]}" ]; then
             
             user_to_export="${existing_users[$((export_choice-1))]}"
-            export_path="/home/$username/vpn_config/${user_to_export}_config.ovpn"
+            export_path="$HOME/vpn_config/${user_to_export}_config.ovpn"
             cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
             
             # Send a notification to Discord with the exported file
@@ -214,11 +214,11 @@ step12() {
   done
   
   # Save users
-  mkdir -p "/home/$username/vpn_config"
-  ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "/home/$username/vpn_config/vpn_users"
+  mkdir -p "$HOME/vpn_config"
+  ls "$OVPN_DIR"/*.ovpn 2>/dev/null | sed 's/.*\///; s/\.ovpn//' > "$HOME/vpn_config/vpn_users"
   
-  echo -e "\n${LIGHT_BLUE}List of users saved in /home/$username/vpn_config/vpn_users${NC}"
-  send_discord_message "List of users saved in /home/$username/vpn_config/vpn_users"
+  echo -e "\n${LIGHT_BLUE}List of users saved in $HOME/vpn_config/vpn_users${NC}"
+  send_discord_message "List of users saved in $HOME/vpn_config/vpn_users"
   echo
 }
 
