@@ -380,7 +380,7 @@ main_menu_flow() {
         echo
         if [[ "$specific_step" -eq 0 ]]; then
           run_step 0  # Call to execute Step 0
-        elif [[ "$specific_step" -ge 1 && "$specific_step" -le 12 ]]; then
+        elif [[ "$specific_step" -ge 1 && "$specific_step" -le 11 ]]; then
           run_step $specific_step
         elif [[ "$specific_step" -eq 99 ]]; then
           clear
