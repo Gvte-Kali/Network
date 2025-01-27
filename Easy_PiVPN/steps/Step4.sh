@@ -36,8 +36,12 @@ step4() {
     done
     
     # Prompt to skip steps 5 and 6
+    echo "================================================="
+    echo ""
+    echo ""
     echo -e "${YELLOW}Existing network configuration detected.${NC}"
     echo "Do you want to skip IP configuration steps (5 and 6)?"
+    echo ""
     
     PS3="Choose an option: "
     options=("Yes, skip IP configuration" "No, proceed with IP configuration")
@@ -64,6 +68,9 @@ step4() {
       esac
     done
   else
+    echo "================================================="
+    echo ""
+    echo ""
     echo -e "${RED}No network connectivity detected.${NC}"
     echo "You will need to configure network settings."
     # Optionally, add a pause or wait for user input
