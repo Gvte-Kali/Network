@@ -86,20 +86,29 @@ get_user_name() {
 # Function to send a message to Discord
 send_discord_message() {
     local message="$1"
+    local file_path="$2"
     local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
-    
-    if [ -f "$webhook_file" ]; then
-        local discord_webhook=$(cat "$webhook_file")
-        
+
+    if [ ! -f "$webhook_file" ]; then
+        echo "Discord webhook file not found."
+        return 1
+    fi
+
+    local discord_webhook=$(cat "$webhook_file")
+
+    if [ -n "$file_path" ] && [ -f "$file_path" ]; then
+        # Envoi avec fichier
+        curl -F "payload_json={\"content\":\"$message\"}" \
+             -F "file=@$file_path" \
+             "$discord_webhook"
+    else
+        # Envoi simple du message
         # Utiliser jq pour encoder correctement le message
         encoded_message=$(echo "$message" | jq -R -s '.')
         
-        # Envoyer le message avec curl
         curl -X POST "$discord_webhook" \
              -H "Content-Type: application/json" \
              -d "{\"content\":$encoded_message}"
-    else
-        echo "Discord webhook file not found."
     fi
 }
 
