@@ -56,7 +56,7 @@ get_user_name() {
     # User selection
     local selection
     while true; do
-        read -p "Select a user by number (1-${#users[@]}): " selection
+        read -p "Select a user by number ( choose root only if you know what you are doing ) (1-${#users[@]}): " selection
         
         # Validate selection
         if [[ "$selection" =~ ^[0-9]+$ ]] && 
@@ -183,7 +183,7 @@ main_menu_flow() {
 }
 
 cat << EOF
-${RED}______________________________________________________________________________________________
+______________________________________________________________________________________________
 
 888      d888                             888          d8888                            d8888  
 888     d8888                             888         d8P888                           d8P888  
@@ -197,7 +197,10 @@ ${RED}__________________________________________________________________________
               Y8b d88P          888                                                           
                 "Y88P"           888                                                           
 ______________________________________________________________________________________________
-${NC}
+
+
+
+
 EOF
 
 
