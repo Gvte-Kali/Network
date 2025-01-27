@@ -46,6 +46,7 @@ step4() {
       case $opt in
         "Yes, skip IP configuration")
           echo "Skipping steps 5 and 6."
+          i=7
           return 0  # Successfully skip the steps
           ;;
         "No, proceed with IP configuration")
