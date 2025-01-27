@@ -8,6 +8,15 @@ step0() {
   clear
   echo -e "\n${GRAY_BLUE}=== Step 0: Preparing directories ===${NC}"
 
+    # Check dependencies
+  dependencies=("curl" "wget" "jq")
+  for dep in "${dependencies[@]}"; do
+    if ! command -v "$dep" &> /dev/null; then
+      echo "Installing $dep..."
+      sudo apt install -y "$dep"
+    fi
+  done
+
   # Retrieve the username from /tmp/username.txt
   if [[ -f /tmp/username.txt ]]; then
     username=$(cat /tmp/username.txt)
