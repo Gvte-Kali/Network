@@ -88,7 +88,8 @@ EOF
   echo -e "\n${LIGHT_BLUE}Cronjob configured to update public IP!${NC}"
   echo "The script will download and execute the update script every 10 minutes."
   echo "You can modify or remove this cronjob at any time."
-  echo
+  echo""
+  read -p "$(echo -e "${LIGHT_BLUE}Press Enter to continue to the next step...${NC}")"
 }
 
 step8
