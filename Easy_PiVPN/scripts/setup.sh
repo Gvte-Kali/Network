@@ -36,42 +36,49 @@ check_prerequisites() {
 }
 
 
-# Internal function to check if a user exists
+# Internal function to get and select username
 get_user_name() {
-    _check_user_exists() {
-        local username="$1"
+    # Get list of all users with login shells
+    local users=($(getent passwd | awk -F: '$7 ~ /\/bin\/bash|\/bin\/zsh|\/bin\/sh/ {print $1}'))
+    
+    # Check if any users are found
+    if [ ${#users[@]} -eq 0 ]; then
+        echo "No users found with login shells."
+        return 1
+    fi
+    
+    # Display available users
+    echo -e "${LIGHT_BLUE}Available Users:${NC}"
+    for i in "${!users[@]}"; do
+        echo "$((i+1)). ${users[i]}"
+    done
+    
+    # User selection
+    local selection
+    while true; do
+        read -p "Select a user by number (1-${#users[@]}): " selection
         
-        # Check if the user exists
-        if id "$username" &>/dev/null; then
-            return 0  # User exists
+        # Validate selection
+        if [[ "$selection" =~ ^[0-9]+$ ]] && 
+           [ "$selection" -ge 1 ] && 
+           [ "$selection" -le ${#users[@]} ]; then
+            
+            # Adjust for zero-based indexing
+            local chosen_user="${users[$((selection-1))]}"
+            
+            # Confirm selection
+            read -p "You selected $chosen_user. Is this correct? (Y/n): " confirm
+            
+            if [[ "$confirm" =~ ^[Yy]$ ]] || [ -z "$confirm" ]; then
+                # Save username to temporary file
+                echo "$chosen_user" > /tmp/username.txt
+                echo -e "${GREEN}Username '$chosen_user' has been saved to /tmp/username.txt.${NC}"
+                return 0
+            fi
         else
-            return 1  # User does not exist
-        fi
-    }
-
-    local username=""
-    local max_attempts=3
-    local attempt=0
-
-    while [ $attempt -lt $max_attempts ]; do
-        # Prompt the user to enter a username
-        read -p "Enter your username: " username
-
-        # Check if the user exists
-        if _check_user_exists "$username"; then
-            # Save the username to a temporary file
-            echo "$username" > /tmp/username.txt
-            echo "Username '$username' exists and has been saved to /tmp/username.txt."
-            return 0  # Success
-        else
-            echo "Username '$username' does not exist. Please try again."
-            ((attempt++))
+            echo "Invalid selection. Please choose a number between 1 and ${#users[@]}."
         fi
     done
-
-    # Failure after the maximum number of attempts
-    echo "Maximum number of attempts reached. Exiting."
-    return 1
 }
 
 
@@ -101,14 +108,21 @@ run_step() {
   local step_number=$1
   echo "Executing Step $step_number..."
   
-  # Verify if we need to skip steps 5 and 6
-  if [[ $step_number -eq 5 || $step_number -eq 6 ]] && [[ -f /tmp/skip_network_config ]]; then
-    echo "Skipping step $step_number as per previous configuration."
-    rm /tmp/skip_network_config
+  # Check if we should skip steps 5 and 6
+  if [[ $step_number -eq 5 ]] && [[ -f /tmp/skip_network_config_step5 ]]; then
+    echo "Skipping step 5 as per previous configuration."
+    rm -f /tmp/skip_network_config_step5
     return 0
   fi
+  
+  if [[ $step_number -eq 6 ]] && [[ -f /tmp/skip_network_config_step6 ]]; then
+    echo "Skipping step 6 as per previous configuration."
+    rm -f /tmp/skip_network_config_step6
+    return 0
+  fi
+  
   local url="https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/steps/Step${step_number}.sh"
-  fetch_and_run_script "$url"  # Call the fetch and run function
+  fetch_and_run_script "$url"
 }
 
 # Function to display the list of steps
@@ -168,8 +182,8 @@ main_menu_flow() {
   esac
 }
 
-cat << "EOF"
-______________________________________________________________________________________________
+cat << EOF
+${RED}______________________________________________________________________________________________
 
 888      d888                             888          d8888                            d8888  
 888     d8888                             888         d8P888                           d8P888  
@@ -183,15 +197,7 @@ ________________________________________________________________________________
               Y8b d88P          888                                                           
                 "Y88P"           888                                                           
 ______________________________________________________________________________________________
-
-
-
-
-
-
-
-
-
+${NC}
 EOF
 
 
