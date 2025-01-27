@@ -100,6 +100,13 @@ fetch_and_run_script() {
 run_step() {
   local step_number=$1
   echo "Executing Step $step_number..."
+  
+  # Verify if we need to skip steps 5 and 6
+  if [[ $step_number -eq 5 || $step_number -eq 6 ]] && [[ -f /tmp/skip_network_config ]]; then
+    echo "Skipping step $step_number as per previous configuration."
+    rm /tmp/skip_network_config
+    return 0
+  fi
   local url="https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/steps/Step${step_number}.sh"
   fetch_and_run_script "$url"  # Call the fetch and run function
 }
