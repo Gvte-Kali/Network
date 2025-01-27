@@ -11,6 +11,17 @@ NC="\033[0m"              # Reset color
 
 step11() {
     echo -e "\n${CYAN}=== NAT Configuration and Network Access ===${NC}"
+
+  # Retrieve the username from /tmp/username.txt
+  if [[ -f /tmp/username.txt ]]; then
+    username=$(cat /tmp/username.txt)
+  else
+    echo "Error: /tmp/username.txt not found. Please run the username script first."
+    return 1
+  fi
+
+  # Define the vpn_config directory path
+  vpn_config_dir="/home/$username/vpn_config"
     
     # Identify network gateways
     echo -e "${BLUE}Detecting network gateways...${NC}"
@@ -33,7 +44,7 @@ step11() {
     # Check Wireguard first
     wireguard_config_files=(
         "/etc/wireguard/"*".conf"
-        "$HOME/"*".conf"
+        "/home/$username/"*".conf"
         "/etc/wireguard/wg0.conf"
     )
     
@@ -105,8 +116,8 @@ step11() {
     done
     
     # Save configuration information
-    mkdir -p "$HOME/vpn_config"
-    cat > "$HOME/vpn_config/nat_port_forwarding" << EOL
+    mkdir -p "/home/$username/vpn_config"
+    cat > "/home/$username/vpn_config/nat_port_forwarding" << EOL
 GATEWAY_IP=$gateway_ip
 MAIN_INTERFACE=$main_interface
 LOCAL_IP=$local_ip
@@ -115,7 +126,7 @@ VPN_PORT=$vpn_port
 EOL
     
     echo -e "\n${GREEN}NAT configuration complete.${NC}"
-    echo "Information saved in $HOME/vpn_config/nat_port_forwarding"
+    echo "Information saved in /home/$username/vpn_config/nat_port_forwarding"
     echo
 }
 
