@@ -22,11 +22,11 @@ step2() {
   
   # Ask if user wants to install RustDesk as a VPN backup
   while true; do
-    echo"If you are on a headless server or want to use this server without GUI, skip this step (n)."
-    echo""
+    echo "If you are on a headless server or want to use this server without GUI, skip this step (n)."
+    echo ""
     echo "Rustdesk is an open-source software designed to make you take control of a remote device"
-    echo"Here, we want to use it as a backup fto get an access to your device in case a problem with the VPN happens.
-    echo""
+    echo "Here, we want to use it as a backup to get an access to your device in case a problem with the VPN happens."
+    echo ""
     read -p "Do you want to install RustDesk as a backup access method for headless servers? (Y/n): " install_choice
     
     case "$install_choice" in
