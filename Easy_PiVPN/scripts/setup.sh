@@ -81,6 +81,7 @@ get_user_name() {
     done
 }
 
+
 # Function to send files to Discord
 send_file_to_discord() {
     clear
@@ -108,6 +109,8 @@ send_file_to_discord() {
         for i in "${!files[@]}"; do
             echo "$((i+1)). $(basename "${files[i]}")"
         done
+        echo
+        echo -e "${RED}=====================================${NC}"
         echo "0 --> Send all files"
         echo "99 --> Return to the main menu"
 
@@ -120,8 +123,7 @@ send_file_to_discord() {
                 # Send all files
                 for file in "${files[@]}"; do
                     filename=$(basename "$file")
-                    # Use printf to handle newlines and escape special characters
-                    file_content=$(printf '%s' "$(cat "$file")")
+                    file_content=$(cat "$file")
                     send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
                 done
                 echo "All files sent to Discord."
@@ -129,8 +131,7 @@ send_file_to_discord() {
                 # Send the selected file
                 local selected_file="${files[$((file_choice-1))]}"
                 filename=$(basename "$selected_file")
-                # Use printf to handle newlines and escape special characters
-                file_content=$(printf '%s' "$(cat "$selected_file")")
+                file_content=$(cat "$selected_file")
                 send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`\n\n"
                 echo "File sent to Discord."
             else
@@ -146,6 +147,7 @@ send_file_to_discord() {
     done
 }
 
+
 # Function to send a message to Discord
 send_discord_message() {
     local message="$1"
@@ -155,7 +157,7 @@ send_discord_message() {
         local discord_webhook=$(cat "$webhook_file")
         
         # Escape newlines and quotes for JSON
-        message=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ')
+        message=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g')
         
         # Send message
         curl -X POST "$discord_webhook" \
@@ -196,7 +198,8 @@ PiVPN_Mgmt() {
     echo "3 --> Delete a user"
     echo "4 --> Export a user's configuration"
     echo "5 --> Send files to Discord"  # New option for sending files
-    echo -e "${WHITE}=========================================${NC}"
+    echo
+    echo -e "${RED}=====================================${NC}"
     echo "0. Return to the main menu"
 
     read -p " --> " user_choice
