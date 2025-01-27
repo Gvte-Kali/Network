@@ -46,7 +46,7 @@ step4() {
       case $opt in
         "Yes, skip IP configuration")
           echo "Skipping steps 5 and 6."
-          i=7
+          i=7  # Increment i to skip to step 7
           return 0  # Successfully skip the steps
           ;;
         "No, proceed with IP configuration")
@@ -68,5 +68,4 @@ step4() {
 }
 
 # Call the step4 function to execute it
-# Version test1
 step4
