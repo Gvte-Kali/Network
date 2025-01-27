@@ -28,10 +28,6 @@ step0() {
   # Create the vpn_config and public_cron folders
   mkdir -p "/home/$username/vpn_config"
 
-  # Create log and temporary files if necessary
-  touch "/home/$username/vpn_config/install_log.txt"
-  touch "/home/$username/vpn_config/temp_config.txt"
-
   # Retrieve the public IPv4 address
   public_ip=$(curl -4 -s ifconfig.me)
   
