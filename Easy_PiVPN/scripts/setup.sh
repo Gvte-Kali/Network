@@ -158,24 +158,37 @@ send_file_to_discord() {
                 # Send all files
                 for file in "${files[@]}"; do
                     filename=$(basename "$file")
-                    file_content=$(cat "$file")
-                    send_discord_message "📄 File: $filename
+                    
+                    # Special handling for .ovpn files
+                    if [[ "$filename" == *.ovpn ]]; then
+                        send_discord_message "📄 OpenVPN Configuration: $filename" "$file"
+                    else
+                        file_content=$(cat "$file")
+                        send_discord_message "📄 File: $filename
 
 \`\`\`
 $file_content
 \`\`\`"
+                    fi
                 done
                 echo "All files sent to Discord."
             elif [ "$file_choice" -ge 1 ] && [ "$file_choice" -le ${#files[@]} ]; then
                 # Send the selected file
                 local selected_file="${files[$((file_choice-1))]}"
                 filename=$(basename "$selected_file")
-                file_content=$(cat "$selected_file")
-                send_discord_message "📄 File: $filename
+                
+                # Special handling for .ovpn files
+                if [[ "$filename" == *.ovpn ]]; then
+                    send_discord_message "📄 OpenVPN Configuration: $filename" "$selected_file"
+                else
+                    file_content=$(cat "$selected_file")
+                    send_discord_message "📄 File: $filename
 
 \`\`\`
 $file_content
 \`\`\`"
+                fi
+                
                 echo "File sent to Discord."
             else
                 echo "Invalid choice. Please try again."
