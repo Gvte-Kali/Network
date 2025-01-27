@@ -13,6 +13,7 @@ NC="\033[0m"              # Reset color
 
 # Function to display the main menu
 main_menu() {
+  clear
   echo -e "${LIGHT_BLUE}====== Main Menu ======${NC}"
   echo
   echo "1 --> Start full setup"
