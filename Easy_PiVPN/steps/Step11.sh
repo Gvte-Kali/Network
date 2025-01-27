@@ -10,6 +10,7 @@ WHITE="\033[1;37m"        # White
 NC="\033[0m"              # Reset color
 
 step11() {
+    clear
     echo -e "\n${CYAN}=== NAT Configuration and Network Access ===${NC}"
 
   # Retrieve the username from /tmp/username.txt
