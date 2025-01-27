@@ -125,7 +125,7 @@ send_file_to_discord() {
         # List files in the directory
         clear
         echo -e "${LIGHT_BLUE}=== Select a file to send to Discord ===${NC}"
-        local files=("$config_dir"*)
+        mapfile -t files < <(find "$config_dir" -maxdepth 1 -type f)
         
         if [ ${#files[@]} -eq 0 ]; then
             echo "No files found in $config_dir."
@@ -134,38 +134,41 @@ send_file_to_discord() {
 
         for i in "${!files[@]}"; do
             echo "$((i+1)). $(basename "${files[i]}")"
-            echo
-            echo
         done
         echo "0 --> Send all files"
         echo "99 --> Return to the main menu"
 
         read -p "Select a file by number: " file_choice
         
-        if [[ "$file_choice" =~ ^[0-9]+$ ]] && [ "$file_choice" -le $(( ${#files[@]} + 1 )) ]; then
-            if [ "$file_choice" -eq 0 ]; then
+        if [[ "$file_choice" =~ ^[0-9]+$ ]]; then
+            if [ "$file_choice" -eq 99 ]; then
+                break  # Exit the loop and return to main menu
+            elif [ "$file_choice" -eq 0 ]; then
                 # Send all files
                 for file in "${files[@]}"; do
-                    local file_content=$(<"$file")  # Read the content of the file
-                    send_discord_message "File: $(basename "$file")\n$file_content" "$file"
+                    filename=$(basename "$file")
+                    file_content=$(cat "$file")
+                    send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`"
                 done
                 echo "All files sent to Discord."
-            elif [ "$file_choice" -eq 99 ]; then
-                return  # Return to the main menu
-            else
+            elif [ "$file_choice" -ge 1 ] && [ "$file_choice" -le ${#files[@]} ]; then
                 # Send the selected file
                 local selected_file="${files[$((file_choice-1))]}"
-                local file_content=$(<"$selected_file")  # Read the content of the selected file
-                send_discord_message "File: $(basename "$selected_file")\n$file_content" "$selected_file"
+                filename=$(basename "$selected_file")
+                file_content=$(cat "$selected_file")
+                send_discord_message "📄 File: $filename\n\`\`\`\n$file_content\`\`\`"
                 echo "File sent to Discord."
+            else
+                echo "Invalid choice. Please try again."
+                continue
             fi
+
+            # Pause for visibility
+            read -p "Press Enter to continue..."
         else
             echo "Invalid choice. Please try again."
         fi
-
-        # Pause for visibility
-        read -p "Press Enter to continue..."
-    done  # End of the loop
+    done
 }
 
 # PiVPN Management function
