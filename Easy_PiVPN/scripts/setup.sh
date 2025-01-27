@@ -11,7 +11,6 @@ CYAN="\033[1;36m"         # Cyan
 WHITE="\033[1;37m"        # White
 NC="\033[0m"              # Reset color
 
-
 # Function to display the main menu
 main_menu() {
   echo -e "${LIGHT_BLUE}====== Main Menu ======${NC}"
@@ -19,6 +18,7 @@ main_menu() {
   echo "1 --> Start full setup"
   echo "2 --> Go to a specific step"
   echo "3 --> PiVPN Management"
+  echo "4 --> Send files to Discord"  # New option for sending files
   echo
   echo -e "${RED}=====================================${NC}"
   echo "0 --> Exit"
@@ -33,9 +33,7 @@ check_prerequisites() {
      echo "This script must be run with sudo privileges." 
      exit 1
   fi
-
 }
-
 
 # Internal function to get and select username
 get_user_name() {
@@ -82,6 +80,88 @@ get_user_name() {
     done
 }
 
+# Function to send a message to Discord
+send_discord_message() {
+    local message="$1"
+    local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
+    local file_path="$2"
+
+    if [ -f "$webhook_file" ]; then
+        local discord_webhook=$(cat "$webhook_file")
+        
+        if [ -n "$file_path" ] && [ -f "$file_path" ]; then
+            # Correct the file path
+            local absolute_file_path=$(realpath "$file_path")
+            
+            # Send with file
+            curl -F "payload_json={\"content\":\"$message\"}" \
+                 -F "file=@$absolute_file_path" \
+                 "$discord_webhook"
+        else
+            # Simple message send
+            curl -X POST "$discord_webhook" \
+                 -H "Content-Type: application/json" \
+                 -d "{\"content\":\"$message\"}"
+        fi
+    else
+        echo "Discord webhook file not found."
+    fi
+}
+
+# Function to send files to Discord
+send_file_to_discord() {
+    clear
+    # Retrieve the username from /tmp/username.txt
+    if [[ -f /tmp/username.txt ]]; then
+        username=$(cat /tmp/username.txt)
+    else
+        echo "Error: /tmp/username.txt not found. Please run the username script first."
+        return 1
+    fi
+
+    local config_dir="/home/$username/vpn_config/"
+    
+    # List files in the directory
+    echo -e "${LIGHT_BLUE}=== Select a file to send to Discord ===${NC}"
+    local files=("$config_dir"*)
+    
+    if [ ${#files[@]} -eq 0 ]; then
+        echo "No files found in $config_dir."
+        return 1
+    fi
+
+    for i in "${!files[@]}"; do
+        echo "$((i+1)). $(basename "${files[i]}")"
+    done
+    echo "0. Send all files"
+    echo "99. Return to the main menu"
+
+    while true; do
+        read -p "Select a file by number: " file_choice
+        
+        if [[ "$file_choice" =~ ^[0-9]+$ ]] && [ "$file_choice" -le $(( ${#files[@]} + 1 )) ]; then
+            if [ "$file_choice" -eq 0 ]; then
+                # Send all files
+                for file in "${files[@]}"; do
+                    send_discord_message "Sending file: $(basename "$file")" "$file"
+                done
+                echo "All files sent to Discord."
+                break
+            elif [ "$file_choice" -eq 99 ]; then
+                return  # Return to the main menu
+            else
+                # Send the selected file
+                send_discord_message "Sending file: $(basename "${files[$((file_choice-1))]}")" "${files[$((file_choice-1))]}"
+                echo "File sent to Discord."
+                break
+            fi
+        else
+            echo "Invalid choice. Please try again."
+        fi
+    done
+}
+
+# PiVPN Management function
 PiVPN_Mgmt() {
   clear
   # Retrieve the username from /tmp/username.txt
@@ -103,34 +183,6 @@ PiVPN_Mgmt() {
     return 1
   fi
 
-  # Function to send a message to Discord
-  send_discord_message() {
-    local message="$1"
-    local webhook_file="/home/$username/vpn_config/discord_webhook.txt"
-    local file_path="$2"
-
-    if [ -f "$webhook_file" ]; then
-      local discord_webhook=$(cat "$webhook_file")
-      
-      if [ -n "$file_path" ] && [ -f "$file_path" ]; then
-        # Correct the file path
-        local absolute_file_path=$(realpath "$file_path")
-        
-        # Send with file
-        curl -F "payload_json={\"content\":\"$message\"}" \
-             -F "file=@$absolute_file_path" \
-             "$discord_webhook"
-      else
-        # Simple message send
-        curl -X POST "$discord_webhook" \
-             -H "Content-Type: application/json" \
-             -d "{\"content\":\"$message\"}"
-      fi
-    else
-      echo "Discord webhook file not found."
-    fi
-  }
-
   # User management menu
   while true; do
     echo -e "\n${LIGHT_BLUE}OpenVPN User Management Options:${NC}"
@@ -138,6 +190,7 @@ PiVPN_Mgmt() {
     echo "2. Create a new user"
     echo "3. Delete a user"
     echo "4. Export a user's configuration"
+    echo "5. Send files to Discord"  # New option for sending files
     echo -e "${WHITE}=========================================${NC}"
     echo "0. Return to the main menu"
     
@@ -229,7 +282,7 @@ PiVPN_Mgmt() {
             # Send a notification to Discord
             send_discord_message "VPN user deleted: $user_to_delete"
             
-            echo "User  $user_to_delete deleted."
+            echo "User   $user_to_delete deleted."
             break
           else
             echo "Invalid choice. Please select a valid number."
@@ -273,6 +326,10 @@ PiVPN_Mgmt() {
         done
         ;;
       
+      5)
+        send_file_to_discord  # Call the function to send files to Discord
+        ;;
+      
       0)
         # Return to the main menu
         break
@@ -295,7 +352,6 @@ PiVPN_Mgmt() {
   send_discord_message "List of users saved in /home/$username/vpn_config/vpn_users"
   echo
 }
-
 
 # Function to fetch and execute a script from a specific URL
 fetch_and_run_script() {
@@ -395,6 +451,10 @@ main_menu_flow() {
       PiVPN_Mgmt
       main_menu_flow
       ;;
+    4)
+      send_file_to_discord  # Call the function to send files to Discord
+      main_menu_flow
+      ;;
     0) echo "Exiting the script."; exit 0 ;;
     *) echo "Invalid choice. Returning to the main menu..."; main_menu_flow ;;
   esac
@@ -420,8 +480,6 @@ ________________________________________________________________________________
 
 
 EOF
-
-
 
 # Call the prerequisite check
 check_prerequisites
