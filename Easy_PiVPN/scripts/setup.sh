@@ -156,7 +156,7 @@ $file_content
 "
                 done
                 echo "All files sent to Discord."
-            elif [ "$file_choice" -ge 1 ]] && [ "$file_choice" -le ${#files[@]} ]; then
+            elif [ "$file_choice" -ge 1 ] && [ "$file_choice" -le ${#files[@]} ]; then
                 # Send the selected file
                 local selected_file="${files[$((file_choice-1))]}"
                 filename=$(basename "$selected_file")
@@ -182,6 +182,7 @@ $file_content
         fi
     done
 }
+
 
 # PiVPN Management function
 PiVPN_Mgmt() {
@@ -212,7 +213,6 @@ PiVPN_Mgmt() {
     echo "2 --> Create a new user"
     echo "3 --> Delete a user"
     echo "4 --> Export a user's configuration"
-    echo "5 --> Send files to Discord"  # New option for sending files
     echo
     echo -e "${RED}=====================================${NC}"
     echo
@@ -231,7 +231,9 @@ PiVPN_Mgmt() {
         else
           echo "$existing_users"
           # Send the list to Discord
-          send_discord_message "List of VPN users:\n$existing_users"
+          send_discord_message "List of VPN users:
+
+$existing_users"
         fi
         ;;
 
@@ -341,17 +343,13 @@ PiVPN_Mgmt() {
             cp "$OVPN_DIR/$user_to_export.ovpn" "$export_path"
 
             # Send a notification to Discord with the exported file
-            send_discord_message "User  configuration exported: $user_to_export" "$export_path"
-            echo "User  configuration for $user_to_export exported to $export_path."
+            send_discord_message "User configuration exported: $user_to_export" "$export_path"
+            echo "User configuration for $user_to_export exported to $export_path."
             break
           else
             echo "Invalid choice. Please select a valid number."
           fi
         done
-        ;;
-
-      5)
-        send_file_to_discord  # Call the function to send files to Discord
         ;;
 
       0)
