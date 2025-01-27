@@ -1,11 +1,15 @@
-# PiVPN Setup Desktop Shortcut
+# Easy_PiVPN : the easy way to get a personnal VPN
 
-Ce guide vous explique comment télécharger et placer le fichier `PiVPN_Setup.desktop` directement sur votre bureau.
+This guide explains how to install PiVPN on your device ( ideally a Raspberry Pi 4 or 5 ).
 
-## Commande unique
+## One-command to install.
 
-Utilisez la commande suivante pour télécharger le fichier et le déplacer sur votre bureau :
+For devices with graphical interfaces : 
 
 ```bash
 wget -O ~/Desktop/PiVPN_Setup.desktop https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/PiVPN_Setup.desktop
+```
+For headless devices ( no user interface ) : 
+```bash
+bash -c 'wget -O /tmp/fr_setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh; read -p \"Press Enter...\"'
 ```
