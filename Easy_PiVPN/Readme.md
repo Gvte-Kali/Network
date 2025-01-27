@@ -11,5 +11,5 @@ wget -O ~/Desktop/PiVPN_Setup.desktop https://raw.githubusercontent.com/Gvte-Kal
 ```
 For headless devices ( no user interface ) : 
 ```bash
-bash -c 'wget -O /tmp/fr_setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh; read -p \"Press Enter...\"'
+bash -c 'wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh; read -p \"Press Enter...\"'
 ```
