@@ -4,6 +4,14 @@ LIGHT_BLUE="\033[1;36m"   #
 NC="\033[0m"              # Reset color
 
 
+# Retrieve the username from /tmp/username.txt
+if [[ -f /tmp/username.txt ]]; then
+  username=$(cat /tmp/username.txt)
+else
+  echo "Error: /tmp/username.txt not found. Please run the username script first."
+  return 1
+fi
+
 # RustDesk version and link
 rustdesk_link="https://github.com/rustdesk/rustdesk/releases/download/1.3.7/rustdesk-1.3.7-x86_64.deb"
 rustdesk_version="1.3.7"
@@ -139,7 +147,7 @@ step2() {
   done
 
   # Create the rustdesk session file
-  echo "$rustdesk_id" > "/home/$USER/vpn_config/rustdesk"
+  echo "$rustdesk_id" > "/home/$username/vpn_config/rustdesk"
   
   echo "RustDesk installation and configuration process completed."
   echo
