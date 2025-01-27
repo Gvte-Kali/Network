@@ -16,4 +16,4 @@ step9() {
   echo
 }
 
-Step9
+step9
