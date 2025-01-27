@@ -109,3 +109,5 @@ step7() {
     esac
   done
 }
+
+step7
