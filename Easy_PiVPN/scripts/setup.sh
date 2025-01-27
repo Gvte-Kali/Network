@@ -123,6 +123,7 @@ send_file_to_discord() {
     
     while true; do  # Start the loop
         # List files in the directory
+        clear
         echo -e "${LIGHT_BLUE}=== Select a file to send to Discord ===${NC}"
         local files=("$config_dir"*)
         
@@ -133,9 +134,11 @@ send_file_to_discord() {
 
         for i in "${!files[@]}"; do
             echo "$((i+1)). $(basename "${files[i]}")"
+            echo
+            echo
         done
-        echo "0. Send all files"
-        echo "99. Return to the main menu"
+        echo "0 --> Send all files"
+        echo "99 --> Return to the main menu"
 
         read -p "Select a file by number: " file_choice
         
@@ -143,14 +146,17 @@ send_file_to_discord() {
             if [ "$file_choice" -eq 0 ]; then
                 # Send all files
                 for file in "${files[@]}"; do
-                    send_discord_message "Sending file: $(basename "$file")" "$file"
+                    local file_content=$(<"$file")  # Read the content of the file
+                    send_discord_message "File: $(basename "$file")\n$file_content" "$file"
                 done
                 echo "All files sent to Discord."
             elif [ "$file_choice" -eq 99 ]; then
                 return  # Return to the main menu
             else
                 # Send the selected file
-                send_discord_message "Sending file: $(basename "${files[$((file_choice-1))]}")" "${files[$((file_choice-1))]}"
+                local selected_file="${files[$((file_choice-1))]}"
+                local file_content=$(<"$selected_file")  # Read the content of the selected file
+                send_discord_message "File: $(basename "$selected_file")\n$file_content" "$selected_file"
                 echo "File sent to Discord."
             fi
         else
