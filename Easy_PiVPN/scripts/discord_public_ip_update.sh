@@ -8,18 +8,19 @@ else
     return 1
 fi
 
-# Chemins des fichiers de configuration
+# Configuration file paths
 OPENVPN_CONFIG="/etc/openvpn/server/server.conf"
 CLIENT_CONFIGS_DIR="/home/$username/ovpns"
 VPN_CONFIG_DIR="/home/$username/vpn_config"
 LOG_FILE="$VPN_CONFIG_DIR/ip_change_log.txt"
+PUBLIC_IP_FILE="$VPN_CONFIG_DIR/public_ip.txt"
 
-# Créer le répertoire de logs s'il n'existe pas
+# Create log directory if it doesn't exist
 mkdir -p "$VPN_CONFIG_DIR"
 
-# Fonction pour obtenir l'adresse IPv4 publique
+# Function to obtain public IPv4 address
 get_ipv4() {
-    # Plusieurs méthodes pour obtenir l'IPv4
+    # Multiple methods to get IPv4
     local ipv4_methods=(
         "curl -4 -s ifconfig.me"
         "curl -4 -s ipv4.icanhazip.com"
@@ -29,90 +30,70 @@ get_ipv4() {
     
     for method in "${ipv4_methods[@]}"; do
         local ip=$(${method})
-        # Validation basique de l'IPv4
+        # Basic IPv4 validation
         if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "$ip"
             return 0
         fi
     done
     
-    echo "Impossible de déterminer l'IPv4" >> "$LOG_FILE"
+    echo "Unable to determine IPv4" >> "$LOG_FILE"
     return 1
 }
 
-# Fonction pour envoyer un message sur Discord
+# Function to send a message to Discord
 send_discord_message() {
     local message="$1"
     local webhook_file="$VPN_CONFIG_DIR/discord_webhook.txt"
-    local file_path="$2"
 
     if [ -f "$webhook_file" ]; then
         local discord_webhook=$(cat "$webhook_file")
         
-        if [ -n "$file_path" ] && [ -f "$file_path" ]; then
-            # Envoi avec fichier
-            curl -F "payload_json={\"content\":\"$message\"}" \
-                 -F "file=@$file_path" \
-                 "$discord_webhook"
-        else
-            # Envoi simple du message
-            curl -X POST "$discord_webhook" \
-                 -H "Content-Type: application/json" \
-                 -d "{\"content\":\"$message\"}"
-        fi
+        # Send simple message
+        curl -X POST "$discord_webhook" \
+             -H "Content-Type: application/json" \
+             -d "{\"content\":\"$message\"}"
     else
-        echo "$(date): Fichier webhook Discord non trouvé." >> "$LOG_FILE"
+        echo "$(date): Discord webhook file not found." >> "$LOG_FILE"
     fi
 }
 
-# Récupérer l'adresse IP publique IPv4 actuelle
+# Retrieve current public IPv4 address
 current_public_ip=$(get_ipv4)
 
-# Vérifier si le fichier de configuration OpenVPN existe
-if [ ! -f "$OPENVPN_CONFIG" ]; then
-    echo "$(date): Erreur : Fichier de configuration OpenVPN introuvable." >> "$LOG_FILE"
+# If unable to get IP address, log and exit
+if [ -z "$current_public_ip" ]; then
+    cat > "$VPN_CONFIG_DIR/ip_update_log" << EOL
+Update Date: $(date)
+User: $username
+New IP Address: Unable to retrieve
+EOL
+    echo "$(date): Unable to retrieve IP address." >> "$LOG_FILE"
     exit 1
 fi
 
-# Vérifier si le répertoire des configurations clients existe
-if [ ! -d "$CLIENT_CONFIGS_DIR" ]; then
-    echo "$(date): Erreur : Répertoire des configurations clients introuvable." >> "$LOG_FILE"
-    exit 1
+# Check if the IP has changed
+if [ -f "$PUBLIC_IP_FILE" ]; then
+    previous_ip=$(cat "$PUBLIC_IP_FILE")
+    
+    # If IP hasn't changed, exit
+    if [ "$current_public_ip" == "$previous_ip" ]; then
+        echo "$(date): IP address unchanged. No action needed." >> "$LOG_FILE"
+        exit 0
+    fi
 fi
 
-# Créer un répertoire temporaire pour stocker les nouveaux fichiers
-temp_config_dir=$(mktemp -d)
+# IP has changed or is new - update the file
+echo "$current_public_ip" > "$PUBLIC_IP_FILE"
 
-# Préparer un zip avec tous les fichiers de configuration des clients
-echo "$(date): Préparation des fichiers de configuration des clients..." >> "$LOG_FILE"
-zip_file="$temp_config_dir/vpn_user_configs.zip"
-zip -j "$zip_file" "$CLIENT_CONFIGS_DIR"/*.ovpn
+# Send Discord notification about IP change
+send_discord_message "🌐 New Public IP Address: $current_public_ip"
 
-# Vérifier si des fichiers ont été ajoutés au zip
-if [ ! -f "$zip_file" ]; then
-    echo "$(date): Aucun fichier de configuration client trouvé." >> "$LOG_FILE"
-    rm -rf "$temp_config_dir"
-    exit 1
-fi
-
-# Préparer le message Discord
-message="🌐 Mise à jour de l'adresse IP publique\n"
-message+="👤 Utilisateur : $username\n"
-message+="📍 Nouvelle adresse IP : $current_public_ip\n"
-message+="📅 Date : $(date)\n"
-message+="📦 Fichiers de configuration des utilisateurs VPN joints."
-
-# Envoyer le message et les fichiers sur Discord
-send_discord_message "$message" "$zip_file"
-
-# Sauvegarder les informations de mise à jour
+# Save update information
 cat > "$VPN_CONFIG_DIR/ip_update_log" << EOL
-Date de mise à jour : $(date)
-Utilisateur : $CURRENT_USER
-Nouvelle adresse IP : $current_public_ip
+Update Date: $(date)
+User: $username
+New IP Address: $current_public_ip
 EOL
 
-# Nettoyer les fichiers temporaires
-rm -rf "$temp_config_dir"
-
-echo "$(date): Mise à jour terminée avec succès." >> "$LOG_FILE"
+echo "$(date): IP address updated successfully." >> "$LOG_FILE"
