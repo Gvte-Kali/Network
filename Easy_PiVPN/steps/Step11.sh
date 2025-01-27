@@ -13,16 +13,16 @@ step11() {
     clear
     echo -e "\n${CYAN}=== NAT Configuration and Network Access ===${NC}"
 
-  # Retrieve the username from /tmp/username.txt
-  if [[ -f /tmp/username.txt ]]; then
-    username=$(cat /tmp/username.txt)
-  else
-    echo "Error: /tmp/username.txt not found. Please run the username script first."
-    return 1
-  fi
+    # Retrieve the username from /tmp/username.txt
+    if [[ -f /tmp/username.txt ]]; then
+        username=$(cat /tmp/username.txt)
+    else
+        echo "Error: /tmp/username.txt not found. Please run the username script first."
+        return 1
+    fi
 
-  # Define the vpn_config directory path
-  vpn_config_dir="/home/$username/vpn_config"
+    # Define the vpn_config directory path
+    vpn_config_dir="/home/$username/vpn_config"
     
     # Identify network gateways
     echo -e "${BLUE}Detecting network gateways...${NC}"
@@ -125,10 +125,27 @@ LOCAL_IP=$local_ip
 VPN_TYPE=$vpn_type
 VPN_PORT=$vpn_port
 EOL
-    
-    echo -e "\n${GREEN}NAT configuration complete.${NC}"
-    echo "Information saved in /home/$username/vpn_config/nat_port_forwarding"
     echo
+    echo "Information saved in /home/$username/vpn_config/nat_port_forwarding"
+    echo 
+    echo
+    echo -e "\n${LIGHT_BLUE}NAT configuration complete.${NC}"
+    echo
+
+    # Ask the user if they want to reboot
+    read -p "Do you want to reboot the computer now? (Y/n): " reboot_choice
+    case "${reboot_choice,,}" in
+        y|"")
+            echo "Rebooting the computer..."
+            sudo reboot
+            ;;
+        n)
+            echo "You chose not to reboot."
+            ;;
+        *)
+            echo "Invalid choice. No reboot will be performed."
+            ;;
+    esac
 }
 
 step11
