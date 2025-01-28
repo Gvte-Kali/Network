@@ -43,8 +43,9 @@ step7() {
     # Display the current iptables rules
     echo -e "\n${LIGHT_BLUE}Current iptables rules:${NC}"
     sudo iptables -t nat -L -n -v
-    echo ""
+    echo
     sudo iptables -L -n -v
+    echo
 
     # Display future rules based on user input
     echo -e "\n${LIGHT_BLUE}Future rules to be created:${NC}"
