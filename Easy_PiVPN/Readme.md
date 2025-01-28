@@ -5,6 +5,7 @@ This guide explains how to install PiVPN on your device (ideally a Raspberry Pi 
 ## Disclaimer
 
 !!! This is meant to setup your PiVPN with OpenVPN !!!
+
 Support for Wireguard is not done and setup with Wireguard might not work.
 
 ## Steps
