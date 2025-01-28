@@ -35,7 +35,7 @@ Before you begin, ensure you have the following:
    - Go to your Discord server settings.
    - Navigate to the "Integrations" section.
    - Create a new webhook and link the webhook to a text channel ( I recommend you create one channel for that purpose only ).
-   - Save the webhook URL somewhere on your raspberry so you can copy and paste it easily.
+   - Save the webhook URL somewhere on your raspberry so you can copy and paste it easily ( Webhook asked in step 6).
 4. **Setup internet connection**
 5. **Use One-command to install**
 
