@@ -6,10 +6,10 @@ GREEN="\033[1;32m"        # Green
 YELLOW="\033[1;33m"       # Yellow
 NC="\033[0m"              # Reset color
 
-# Step 7: Guide for configuring autologin
-step7() {
+# Step 4: Guide for configuring autologin
+step4() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 7: Configure Autologin ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Step 4: Configure Autologin ===${NC}"
   
   # Detect current autologin settings
   _detect_autologin() {
@@ -100,4 +100,4 @@ step7() {
   done
 }
 
-step7
+step4
