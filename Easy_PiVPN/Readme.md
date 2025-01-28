@@ -27,6 +27,10 @@ For headless devices ( no user interface ) :
 ```bash
 bash -c "wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/scripts/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh" && read -p "Press Enter..."
 ```
+## Overview
+![Overview of the final result](https://raw.githubusercontent.com/username/repo/branch/path/to/image.png](https://github.com/Gvte-Kali/Network/blob/main/Easy_PiVPN/Easy_PiVPN_Overview.png)
+
+
 ## Configuration Steps
 
 1. **Preparing Directories**: The script will create necessary directories for configuration files.
