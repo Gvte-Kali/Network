@@ -2,6 +2,23 @@
 
 This guide explains how to install PiVPN on your device (ideally a Raspberry Pi 4 or 5). It is actually running pretty well on a headless Raspberry Pi 3B+.
 
+## One-command to install
+
+For devices with graphical interfaces:
+
+```bash
+wget -O ~/Desktop/PiVPN_Setup.desktop https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/PiVPN_Setup.desktop
+```
+For headless devices ( no user interface ) : 
+```bash
+bash -c "wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/scripts/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh" && read -p "Press Enter..."
+```
+
+
+## Visual
+![Overview of the overall setup](https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/Easy_PiVPN_Overview.png)
+
+
 ## Disclaimer
 
 !!! This is meant to setup your PiVPN with OpenVPN !!!
@@ -21,20 +38,6 @@ Before you begin, ensure you have the following:
    - Save the webhook URL somewhere on your raspberry so you can copy and paste it easily.
 4. **Setup internet connection**
 5. **Use One-command to install**
-
-## One-command to install
-
-For devices with graphical interfaces:
-
-```bash
-wget -O ~/Desktop/PiVPN_Setup.desktop https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/PiVPN_Setup.desktop
-```
-For headless devices ( no user interface ) : 
-```bash
-bash -c "wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/scripts/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh" && read -p "Press Enter..."
-```
-## Visual
-![Overview of the overall setup](https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/Easy_PiVPN_Overview.png)
 
 
 ## Configuration Steps
