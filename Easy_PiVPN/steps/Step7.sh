@@ -54,6 +54,8 @@ step7() {
     echo "3. FORWARD rule: Allow established/related traffic from $LAN_INTERFACE to $VPN_INTERFACE"
 
     # Ask for confirmation to apply the rules
+    echo
+    echo
     read -p "Do you want to apply these rules? (Y/n): " apply_choice
     if [[ ! "$apply_choice" =~ ^[Yy]$ ]]; then
         echo "Configuration not applied. Exiting."
