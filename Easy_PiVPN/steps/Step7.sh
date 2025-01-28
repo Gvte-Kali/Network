@@ -1,5 +1,5 @@
 # Define colors
-GRAY_BLUE="\033[1;34m"    # Dark gray blue
+ GRAY_BLUE="\033[1;34m"    # Dark gray blue
 LIGHT_BLUE="\033[1;36m"   # Light blue
 RED="\033[1;31m"          # Red
 GREEN="\033[1;32m"        # Green
@@ -45,6 +45,12 @@ step7() {
     sudo iptables -t nat -L -n -v
     echo ""
     sudo iptables -L -n -v
+
+    # Display future rules based on user input
+    echo -e "\n${LIGHT_BLUE}Future rules to be created:${NC}"
+    echo "1. NAT rule: POSTROUTING - MASQUERADE for $VPN_NETWORK on $LAN_INTERFACE"
+    echo "2. FORWARD rule: Allow traffic from $VPN_INTERFACE to $LAN_INTERFACE"
+    echo "3. FORWARD rule: Allow established/related traffic from $LAN_INTERFACE to $VPN_INTERFACE"
 
     # Ask for confirmation to apply the rules
     read -p "Do you want to apply these rules? (Y/n): " apply_choice
