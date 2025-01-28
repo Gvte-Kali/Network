@@ -83,39 +83,66 @@ step8() {
     echo "VPN Type       : $vpn_type"
     echo "VPN Port       : $vpn_port"
     
-    # Explanation of NAT configuration
-    echo -e "\n${CYAN}NAT Configuration Required:${NC}"
-    echo "1. Access your router's web interface"
-    echo "2. Navigate to port forwarding settings"
-    echo "3. Create a new forwarding rule:"
-    echo "   - External port : $vpn_port"
-    echo "   - Internal port  : $vpn_port"
-    echo "   - Internal IP    : $local_ip"
-    echo "   - Protocol       : UDP"
-    
-    # Open router interface
-    read -p "Press Enter to open the router's web interface..." 
-    xdg-open "http://$gateway_ip" 2>/dev/null
-    
-    # Validate NAT configuration
-    while true; do
-        read -p "Have you configured the NAT rule on the router? (Y/n) : " nat_config
+    # Ask for mode (Graphical or Headless)
+    echo -e "\n${LIGHT_BLUE}Select your mode:${NC}"
+    echo "1 --> Graphical Mode"
+    echo "2 --> Headless Mode"
+    read -p "Choose an option (1 or 2): " mode_choice
+
+    if [[ "$mode_choice" -eq 1 ]]; then
+        # Graphical mode: Open router interface
+        echo -e "\n${CYAN}Opening router's web interface...${NC}"
+        read -p "Press Enter to open the router's web interface..." 
+        xdg-open "http://$gateway_ip" 2>/dev/null
         
-        case "${nat_config,,}" in
-            y|"")
-                echo " NAT configuration confirmed."
-                break
-                ;;
-            n)
-                echo "Please configure the NAT rule before continuing."
-                read -p "Press Enter to try again..."
-                xdg-open "http://$gateway_ip" 2>/dev/null
-                ;;
-            *)
-                echo "Invalid response. Use Y or N."
-                ;;
-        esac
-    done
+        # Validate NAT configuration
+        while true; do
+            read -p "Have you configured the NAT rule on the router? (Y/n) : " nat_config
+            
+            case "${nat_config,,}" in
+                y|"")
+                    echo "NAT configuration confirmed."
+                    break
+                    ;;
+                n)
+                    echo "Please configure the NAT rule before continuing."
+                    read -p "Press Enter to try again..."
+                    xdg-open "http://$gateway_ip" 2>/dev/null
+                    ;;
+                *)
+                    echo "Invalid response. Use Y or N."
+                    ;;
+            esac
+        done
+    else
+        # Headless mode: Provide instructions
+        echo -e "\n${CYAN}Please configure the NAT rule on your router manually using the following instructions:${NC}"
+        echo "1. Access your router's web interface by entering the following URL in your browser: http://$gateway_ip"
+        echo "2. Navigate to the port forwarding settings."
+        echo "3. Create a new forwarding rule:"
+        echo "   - External port : $vpn_port"
+        echo "   - Internal port  : $vpn_port"
+        echo "   - Internal IP    : $local_ip"
+        echo "   - Protocol       : UDP"
+        
+        # Wait for user confirmation
+        while true; do
+            read -p "Have you configured the NAT rule on the router? (Y/n) : " nat_config
+            
+            case "${nat_config,,}" in
+                y|"")
+                    echo "NAT configuration confirmed."
+                    break
+                    ;;
+                n)
+                    echo "Please configure the NAT rule before continuing."
+                    ;;
+                *)
+                    echo "Invalid response. Use Y or N."
+                    ;;
+            esac
+        done
+    fi
     
     # Save configuration information
     mkdir -p "/home/$username/vpn_config"
@@ -129,12 +156,11 @@ EOL
     echo
     echo "Information saved in /home/$username/vpn_config/nat_port_forwarding"
     echo 
-    echo
     echo -e "\n${LIGHT_BLUE}NAT configuration complete.${NC}"
     echo
 
     # Ask the user if they want to reboot
-    echo"Setup is done, we recommend to reboot now and launch this program again"
+    echo "Setup is done, we recommend to reboot now and launch this program again."
     read -p "Do you want to reboot the computer now? (Y/n): " reboot_choice
     case "${reboot_choice,,}" in
         y|"")
