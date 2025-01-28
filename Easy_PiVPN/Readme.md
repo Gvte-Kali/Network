@@ -4,7 +4,7 @@ This guide explains how to install PiVPN on your device (ideally a Raspberry Pi 
 
 ## One-command to install
 
-For devices with graphical interfaces:
+For devices with graphical interfaces ( installing a desktop launcher on actual user Desktop ) :
 
 ```bash
 wget -O ~/Desktop/PiVPN_Setup.desktop https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/PiVPN_Setup.desktop
