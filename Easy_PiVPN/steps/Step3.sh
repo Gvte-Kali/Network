@@ -35,41 +35,12 @@ step3() {
       echo "---"
     done
     
-    # Prompt to skip steps 5 and 6
     echo "================================================="
-    echo ""
     echo ""
     echo -e "${YELLOW}Existing network configuration detected.${NC}"
-    echo "Do you want to skip IP configuration steps (5 and 6)?"
-    echo ""
-    
-    PS3="Choose an option: "
-    options=("Skip IP configuration" "Proceed with IP configuration")
-    
-    select opt in "${options[@]}"; do
-      case $opt in
-        "Yes, skip IP configuration")
-          # Create flag files to indicate skipping steps 5 and 6
-          touch /tmp/skip_network_config_step5
-          touch /tmp/skip_network_config_step6
-          echo "Skipping steps 5 and 6."
-          break
-          ;;
-        "No, proceed with IP configuration")
-          # Remove the flag files if they exist
-          rm -f /tmp/skip_network_config_step5
-          rm -f /tmp/skip_network_config_step6
-          break
-          ;;
-        *) 
-          echo "Invalid option. Please select 1 or 2."
-          continue
-          ;;
-      esac
-    done
+    echo "You can proceed to the next step."
   else
     echo "================================================="
-    echo ""
     echo ""
     echo -e "${RED}No network connectivity detected.${NC}"
     echo "You will need to configure network settings."
