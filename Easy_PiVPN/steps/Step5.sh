@@ -1,4 +1,4 @@
-# Colors
+# Define colors
 GRAY_BLUE="\033[1;34m"    # Dark gray blue
 LIGHT_BLUE="\033[1;36m"   # Light blue
 RED="\033[1;31m"          # Red
@@ -10,10 +10,10 @@ WHITE="\033[1;37m"        # White
 NC="\033[0m"              # Reset color
 
 
-# Step 8: Discord Cronjob Configuration
-step8() {
+# Step 5: Discord Cronjob Configuration
+step5() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 8: Discord Cronjob Configuration ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Step 5: Discord Cronjob Configuration ===${NC}"
 
   # Retrieve the username from /tmp/username.txt
   if [[ -f /tmp/username.txt ]]; then
@@ -88,8 +88,8 @@ EOF
   echo -e "\n${LIGHT_BLUE}Cronjob configured to update public IP!${NC}"
   echo "The script will download and execute the update script every 10 minutes."
   echo "You can modify or remove this cronjob at any time."
-  echo""
+  echo ""
   read -p "$(echo -e "${LIGHT_BLUE}Press Enter to continue to the next step...${NC}")"
 }
 
-step8
+step5
