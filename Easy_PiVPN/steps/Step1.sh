@@ -6,7 +6,7 @@ NC="\033[0m"              # Reset color
 # Step 1: Update packages and install OpenVPN
 step1() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 1: Updating packages and installing OpenVPN ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Updating packages and installing OpenVPN ===${NC}"
   
   # Ask user if they want to update and upgrade packages
   read -p "${LIGHT_BLUE}Do you want to update and upgrade packages? (y/n): ${NC}" update_choice
