@@ -1,6 +1,6 @@
 # Easy_PiVPN: The Easy Way to Get a Personal VPN
 
-This guide explains how to install PiVPN on your device (ideally a Raspberry Pi 4 or 5).
+This guide explains how to install PiVPN on your device (ideally a Raspberry Pi 4 or 5). It is actually running pretty well on a headless Raspberry Pi 3B+.
 
 ## Disclaimer
 
