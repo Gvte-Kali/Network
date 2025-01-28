@@ -12,7 +12,7 @@ NC="\033[0m"              # Reset color
 # Step 7: Routing and NAT Configuration between VPN and Physical Network
 step7() {
     clear
-    echo -e "\n${GRAY_BLUE}=== OpenVPN Configuration for LAN Access ===${NC}"
+    echo -e "\n${GRAY_BLUE}=== Routing and NAT configuration for VPN to LAN tunnel ===${NC}"
     echo ""
     echo ""
 
