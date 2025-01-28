@@ -115,7 +115,7 @@ send_discord_message() {
 send_file_to_discord() {
     clear
     # Retrieve the username from /tmp/username.txt
-    if [[ -f /tmp /username.txt ]]; then
+    if [[ -f /tmp/username.txt ]]; then
         username=$(cat /tmp/username.txt)
     else
         echo "Error: /tmp/username.txt not found. Please run the username script first."
