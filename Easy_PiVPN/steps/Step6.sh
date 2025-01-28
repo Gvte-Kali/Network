@@ -1,4 +1,4 @@
-# Colors
+# Define colors
 GRAY_BLUE="\033[1;34m"    # Dark gray blue
 LIGHT_BLUE="\033[1;36m"   # Light blue
 RED="\033[1;31m"          # Red
@@ -9,12 +9,12 @@ CYAN="\033[1;36m"         # Cyan
 WHITE="\033[1;37m"        # White
 NC="\033[0m"              # Reset color
 
-# Step 9: Install PiVPN
-step9() {
+# Step 6: Install PiVPN
+step6() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 9: PiVPN Installation ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Step 6: PiVPN Installation ===${NC}"
   curl -L https://install.pivpn.io | bash
   echo
 }
 
-step9
+step6
