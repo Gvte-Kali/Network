@@ -9,7 +9,7 @@ NC="\033[0m"              # Reset color
 # Step 3: Display detailed network information and check network configuration
 step3() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 3: Network Information ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Network Information ===${NC}"
   
   # Test network connectivity
   if ping -c 4 8.8.8.8 &> /dev/null; then
