@@ -27,7 +27,8 @@ For headless devices ( no user interface ) :
 ```bash
 bash -c "wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/scripts/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh" && read -p "Press Enter..."
 ```
-![Overview](https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/Easy_PiVPN_Overview.png)
+## Visual
+![Overview of the overall setup](https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/Easy_PiVPN_Overview.png)
 
 
 ## Configuration Steps
