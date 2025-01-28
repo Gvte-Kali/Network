@@ -12,7 +12,7 @@ NC="\033[0m"              # Reset color
 # Step 8: NAT Configuration and Network Access
 step8() {
     clear
-    echo -e "\n${CYAN}=== NAT Configuration and Network Access ===${NC}"
+    echo -e "\n${CYAN}=== NAT configuration on Router ===${NC}"
 
     # Retrieve the username from /tmp/username.txt
     if [[ -f /tmp/username.txt ]]; then
