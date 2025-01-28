@@ -12,7 +12,7 @@ NC="\033[0m"              # Reset color
 # Step 6: Install PiVPN
 step6() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 6: PiVPN Installation ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== PiVPN Installation ===${NC}"
   curl -L https://install.pivpn.io | bash
   echo
 }
