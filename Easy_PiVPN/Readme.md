@@ -34,7 +34,7 @@ Before you begin, ensure you have the following:
 3. **A Discord Webhook**: Set up a Discord webhook to send messages. You can create a webhook by following these steps:
    - Go to your Discord server settings.
    - Navigate to the "Integrations" section.
-   - Create a new webhook and copy the URL.
+   - Create a new webhook and link the webhook to a text channel ( I recommend you create one channel for that purpose only ).
    - Save the webhook URL somewhere on your raspberry so you can copy and paste it easily.
 4. **Setup internet connection**
 5. **Use One-command to install**
