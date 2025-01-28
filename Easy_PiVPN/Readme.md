@@ -2,7 +2,7 @@
 
 This guide explains how to install PiVPN on your device (ideally a Raspberry Pi 4 or 5).
 
-## Prerequisites
+## Steps
 
 Before you begin, ensure you have the following:
 
@@ -15,7 +15,6 @@ Before you begin, ensure you have the following:
    - Save the webhook URL somewhere on your raspberry so you can copy and paste it easily.
 4. **Setup internet connection**
 5. **Use One-command to install**
-6. **Done !**
 
 ## One-command to install
 
