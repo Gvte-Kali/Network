@@ -1,4 +1,4 @@
-# Colors
+# Define colors
 GRAY_BLUE="\033[1;34m"    # Dark gray blue
 LIGHT_BLUE="\033[1;36m"   # Light blue
 RED="\033[1;31m"          # Red
@@ -9,7 +9,8 @@ CYAN="\033[1;36m"         # Cyan
 WHITE="\033[1;37m"        # White
 NC="\033[0m"              # Reset color
 
-step11() {
+# Step 8: NAT Configuration and Network Access
+step8() {
     clear
     echo -e "\n${CYAN}=== NAT Configuration and Network Access ===${NC}"
 
@@ -102,7 +103,7 @@ step11() {
         
         case "${nat_config,,}" in
             y|"")
-                echo "NAT configuration confirmed."
+                echo " NAT configuration confirmed."
                 break
                 ;;
             n)
@@ -133,6 +134,7 @@ EOL
     echo
 
     # Ask the user if they want to reboot
+    echo"Setup is done, we recommend to reboot now and launch this program again"
     read -p "Do you want to reboot the computer now? (Y/n): " reboot_choice
     case "${reboot_choice,,}" in
         y|"")
@@ -148,4 +150,4 @@ EOL
     esac
 }
 
-step11
+step8
