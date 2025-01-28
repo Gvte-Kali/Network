@@ -1,4 +1,4 @@
-# Colors
+# Define colors
 GRAY_BLUE="\033[1;34m"    # Dark gray blue
 LIGHT_BLUE="\033[1;36m"   # Light blue
 RED="\033[1;31m"          # Red
@@ -9,12 +9,12 @@ CYAN="\033[1;36m"         # Cyan
 WHITE="\033[1;37m"        # White
 NC="\033[0m"              # Reset color
 
-# Step 10: Routing and NAT Configuration between VPN and Physical Network
-step10() {
+# Step 7: Routing and NAT Configuration between VPN and Physical Network
+step7() {
     clear
     echo -e "\n${GRAY_BLUE}=== OpenVPN Configuration for LAN Access ===${NC}"
-    echo""
-    echo""
+    echo ""
+    echo ""
 
     # Identify network interfaces
     interfaces=($(ip -o -f inet addr show | awk '{print $2}'))
@@ -47,4 +47,4 @@ step10() {
     echo -e "${GREEN}Configuration complete. LAN access from OpenVPN enabled.${NC}"
 }
 
-step10
+step7
