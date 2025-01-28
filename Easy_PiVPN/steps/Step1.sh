@@ -9,7 +9,7 @@ step1() {
   echo -e "\n${GRAY_BLUE}=== Updating packages and installing OpenVPN ===${NC}"
   
   # Ask user if they want to update and upgrade packages
-  read -p "${LIGHT_BLUE}Do you want to update and upgrade packages? (y/n): ${NC}" update_choice
+  read -p "Do you want to update and upgrade packages? (y/n): " update_choice
   if [[ "$update_choice" == "y" || "$update_choice" == "Y" ]]; then
     echo -e "\n${LIGHT_BLUE}Updating and upgrading packages...${NC}"
     sudo apt update && sudo apt upgrade -y
@@ -18,7 +18,7 @@ step1() {
   fi
   
   # Ask user if they want to install OpenVPN
-  read -p "${LIGHT_BLUE}Do you want to install OpenVPN? (y/n): ${NC}" install_choice
+  read -p "Do you want to install OpenVPN? (y/n): " install_choice
   if [[ "$install_choice" == "y" || "$install_choice" == "Y" ]]; then
     echo -e "\n${LIGHT_BLUE}Installing OpenVPN...${NC}"
     sudo apt install -y openvpn
