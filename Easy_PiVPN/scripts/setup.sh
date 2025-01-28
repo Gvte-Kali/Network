@@ -413,6 +413,7 @@ run_step() {
 
 # Function to display the list of steps
 display_steps() {
+    clear
     echo
     echo -e "${LIGHT_BLUE}=== List of Steps ===${NC}"
     echo "0 --> Preparing directories"
