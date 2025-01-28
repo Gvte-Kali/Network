@@ -25,7 +25,7 @@ bash -c "wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Netwo
 
 Support for Wireguard is not done and setup with Wireguard might not work.
 
-## prerequisites
+## Prerequisites
 
 Before you begin, ensure you have the following:
 
