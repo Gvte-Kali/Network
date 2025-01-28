@@ -82,7 +82,6 @@ get_user_name() {
     done
 }
 
-
 # Function to send a message to Discord
 send_discord_message() {
     local message="$1"
@@ -112,12 +111,11 @@ send_discord_message() {
     fi
 }
 
-
 # Function to send files to Discord
 send_file_to_discord() {
     clear
     # Retrieve the username from /tmp/username.txt
-    if [[ -f /tmp/username.txt ]]; then
+    if [[ -f /tmp /username.txt ]]; then
         username=$(cat /tmp/username.txt)
     else
         echo "Error: /tmp/username.txt not found. Please run the username script first."
@@ -203,7 +201,6 @@ $file_content
     done
 }
 
-
 # PiVPN Management Function
 PiVPN_Mgmt() {
     # Clear the screen
@@ -224,7 +221,7 @@ PiVPN_Mgmt() {
     # Check PiVPN installation
     if ! command -v pivpn &> /dev/null; then
         echo -e "${LIGHT_BLUE}PiVPN is not installed.${NC}"
-        echo "Please install PiVPN in Step 9."
+        echo "Please install PiVPN in Step 6."
         return 1
     fi
 
@@ -256,7 +253,7 @@ PiVPN_Mgmt() {
         read -p "Select an option: " user_choice
 
         case "$user_choice" in
-            1)
+            1 )
                 # List users
                 if list_users; then
                     # Retrieve user list
@@ -298,7 +295,7 @@ $users"
                     
                     if [ -f "$user_config" ]; then
                         send_discord_message "New VPN User Created: $new_user" "$user_config"
-                        echo "User $new_user created successfully."
+                        echo "User  $new_user created successfully."
                     else
                         echo "Failed to create user configuration."
                     fi
@@ -330,7 +327,7 @@ $users"
                     echo "Removing VPN user: $user_to_delete"
                     sudo pivpn -r "$user_to_delete"
                     send_discord_message "VPN User Removed: $user_to_delete"
-                    echo "User $user_to_delete has been deleted."
+                    echo "User  $user_to_delete has been deleted."
                 fi
                 ;;
 
@@ -379,9 +376,9 @@ $users"
 
     # Final users list save
     mkdir -p "/home/$username/vpn_config"
-    find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//' > "/home/$username/vpn_config/vpn_users"
+    find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f \n" | sed 's/\.ovpn$//' > "/home/$username/vpn_config/vpn_users"
 
-    echo "User list saved."
+    echo "User  list saved."
 }
 
 # Function to fetch and execute a script from a specific URL
@@ -407,91 +404,75 @@ fetch_and_run_script() {
 
 # Function to manage steps and action choices
 run_step() {
-  local step_number=$1
-  echo "Executing Step $step_number..."
+    local step_number=$1
+    echo "Executing Step $step_number..."
 
-  # Check if we should skip steps 5 and 6
-  if [[ $step_number -eq 5 ]] && [[ -f /tmp/skip_network_config_step5 ]]; then
-    echo "Skipping step 5 as per previous configuration."
-    rm -f /tmp/skip_network_config_step5
-    return 0
-  fi
-
-  if [[ $step_number -eq 6 ]] && [[ -f /tmp/skip_network_config_step6 ]]; then
-    echo "Skipping step 6 as per previous configuration."
-    rm -f /tmp/skip_network_config_step6
-    return 0
-  fi
-
-  local url="https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/steps/Step${step_number}.sh"
-  fetch_and_run_script "$url"
+    local url="https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/steps/Step${step_number}.sh"
+    fetch_and_run_script "$url"
 }
 
 # Function to display the list of steps
 display_steps() {
-  echo
-  echo -e "${LIGHT_BLUE}=== List of Steps ===${NC}"
-  echo "0 --> Prepare directories"
-  echo "1 --> Update packages"
-  echo "2 --> Install RustDesk"
-  echo "3 --> Install OpenVPN"
-  echo "4 --> List network interfaces"
-  echo "5 --> IP configuration"
-  echo "6 --> Apply IP configuration"
-  echo "7 --> Configure autologin"
-  echo "8 --> Configure Discord cronjob"
-  echo "9 --> Install PiVPN"
-  echo "10 --> Configure routing and NAT VPN on Raspberry Pi"
-  echo "11 --> Configure NAT and port forwarding on router"
-  echo
-  echo
-  echo -e "${WHITE}=========================================${NC}"
-  echo
-  echo "99 --> Return to Main Menu"
-  echo
+    echo
+    echo -e "${LIGHT_BLUE}=== List of Steps ===${NC}"
+    echo "0 --> Preparing directories"
+    echo "1 --> Updating packages and installing OpenVPN"
+    echo "2 --> Installing RustDesk"
+    echo "3 --> Display network information"
+    echo "4 --> Configure autologin"
+    echo "5 --> Discord and cronjob configuration"
+    echo "6 --> PiVPN Installation"
+    echo "7 --> Routing and NAT configuration for VPN to LAN tunnel"
+    echo "8 --> NAT configuration on Router"
+    echo
+    echo
+    echo -e "${WHITE}=========================================${NC}"
+    echo
+    echo "99 --> Return to Main Menu"
+    echo
 }
 
 # Main menu flow
 main_menu_flow() {
-  main_menu
-  case "$main_choice" in
-    1)
-      # Start all setup steps
-      run_step 0  # Call to execute Step 0
-      for i in {1..11}; do
-        run_step $i
-      done
-      ;;
-    2)
-      # Display the list of steps and allow choosing a specific step
-      while true; do
-        display_steps
-        read -p "-->  " specific_step
-        echo
-        if [[ "$specific_step" -eq 0 ]]; then
-          run_step 0  # Call to execute Step 0
-        elif [[ "$specific_step" -ge 1 && "$specific_step" -le 11 ]]; then
-          run_step $specific_step
-        elif [[ "$specific_step" -eq 99 ]]; then
-          clear
-          main_menu_flow  # Call the main menu flow again
-          return  # Exit the loop
-        else
-          echo "Invalid choice. Please try again."
-        fi
-      done
-      ;;
-    3) 
-      PiVPN_Mgmt
-      main_menu_flow
-      ;;
-    4)
-      send_file_to_discord  # Call the function to send files to Discord
-      main_menu_flow
-      ;;
-    0) echo "Exiting the script."; exit 0 ;;
-    *) echo "Invalid choice. Returning to the main menu..."; main_menu_flow ;;
-  esac
+    main_menu
+    case "$main_choice" in
+        1)
+            # Start all setup steps
+            run_step 0  # Call to execute Step 0
+            for i in {1..8}; do
+                run_step $i
+            done
+            ;;
+        2)
+            # Display the list of steps and allow choosing a specific step
+            while true; do
+                display_steps
+                read -p "-->  " specific_step
+                echo
+                if [[ "$specific_step" -eq 0 ]]; then
+                    run_step 0  # Call to execute Step 0
+                elif [[ "$specific_step" -ge 1 && "$specific_step" -le 8 ]]; then
+                    run_step $specific_step
+                elif [[ "$specific_step" -eq 99 ]]; then
+                    clear
+                    main_menu_flow  # Call the main menu flow again
+                    return  # Exit the loop
+                else
+                    echo "Invalid choice. Please try again."
+                fi
+            done
+            ;;
+        3) 
+            PiVPN_Mgmt
+            main_menu_flow
+            ;;
+        4)
+            send_file_to_discord  # Call the function to send files to Discord
+            main_menu_flow
+            ;;
+        0) echo "Exiting the script."; exit 0 ;;
+        *) echo "Invalid choice. Returning to the main menu..."; main_menu_flow ;;
+    esac
 }
 
 cat << EOF
@@ -505,7 +486,7 @@ ________________________________________________________________________________
 888 d88P  888  Y88b 888          888 d88P 888  888       888  888     888  888  888       888  
 88888P" 8888888 "Y88888 88888888 88888P"  888  888       888  888     888  888  888       888  
                     888          888                                                           
-              Y8b d88P          888                                                           
+              Y8b d88P          888                                                            ```bash
                 "Y88P"           888                                                           
 ______________________________________________________________________________________________
 EOF
