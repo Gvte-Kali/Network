@@ -6,7 +6,7 @@ NC="\033[0m"
 # Step 0: Preparing directories and configuration files
 step0() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 0: Preparing Directories ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Preparing Directories ===${NC}"
 
   # Check dependencies
   dependencies=("curl" "wget" "jq")
