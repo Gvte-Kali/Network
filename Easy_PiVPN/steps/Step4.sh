@@ -9,7 +9,7 @@ NC="\033[0m"              # Reset color
 # Step 4: Guide for configuring autologin
 step4() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 4: Configure Autologin ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== Configure Autologin ===${NC}"
   
   # Detect current autologin settings
   _detect_autologin() {
