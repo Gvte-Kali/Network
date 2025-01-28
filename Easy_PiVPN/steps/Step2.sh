@@ -18,7 +18,7 @@ rustdesk_version="1.3.7"
 # Step 2: Download and install RustDesk
 step2() {
   clear
-  echo -e "\n${GRAY_BLUE}=== Step 2: RustDesk Installation ===${NC}"
+  echo -e "\n${GRAY_BLUE}=== RustDesk Installation ===${NC}"
   
   # Ask if user wants to install RustDesk as a VPN backup
   while true; do
