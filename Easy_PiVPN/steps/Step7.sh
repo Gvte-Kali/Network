@@ -40,6 +40,19 @@ step7() {
     sudo iptables -A FORWARD -i "$VPN_INTERFACE" -o "$LAN_INTERFACE" -j ACCEPT
     sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -m state --state ESTABLISHED,RELATED -j ACCEPT
 
+    # Display the current iptables rules
+    echo -e "\n${LIGHT_BLUE}Current iptables rules:${NC}"
+    sudo iptables -t nat -L -n -v
+    echo ""
+    sudo iptables -L -n -v
+
+    # Ask for confirmation to apply the rules
+    read -p "Do you want to apply these rules? (Y/n): " apply_choice
+    if [[ ! "$apply_choice" =~ ^[Yy]$ ]]; then
+        echo "Configuration not applied. Exiting."
+        return 0
+    fi
+
     # Save the rules
     sudo apt-get install -y iptables-persistent
     sudo netfilter-persistent save
