@@ -259,11 +259,6 @@ PiVPN_Mgmt() {
                     # Retrieve user list
                     local users=$(find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f\n" | sed 's/\.ovpn$//')
                     
-                    # Send list to Discord if not empty
-                    if [ -n "$users" ]; then
-                        send_discord_message "Current VPN Users:
-$users"
-                    fi
                 fi
                 ;;
 
@@ -377,7 +372,6 @@ $users"
     # Final users list save
     mkdir -p "/home/$username/vpn_config"
     find "$OVPN_DIR" -maxdepth 1 -type f -name "*.ovpn" -printf "%f \n" | sed 's/\.ovpn$//' > "/home/$username/vpn_config/vpn_users"
-
     echo "User  list saved."
 }
 
