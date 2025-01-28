@@ -12,7 +12,7 @@ Before you begin, ensure you have the following:
    - Go to your Discord server settings.
    - Navigate to the "Integrations" section.
    - Create a new webhook and copy the URL.
-   - Save the webhook URL in a file located at `/home/<your_username>/vpn_config/discord_webhook.txt`.
+   - Save the webhook URL somewhere on your raspberry so you can copy and paste it easily.
 4. **Setup internet connection**
 5. **Use One-command to install**
 6. **Done !**
