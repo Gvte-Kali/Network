@@ -37,7 +37,7 @@ Before you begin, ensure you have the following:
    - Create a new webhook and link the webhook to a text channel ( I recommend you create one channel for that purpose only ).
    - Save the webhook URL somewhere on your raspberry so you can copy and paste it easily ( Webhook asked in step 6).
 4. **Setup internet connection**
-5. **Use One-command to install**
+5. **Use the above "One-command to install"**
 
 
 ## Configuration Steps
