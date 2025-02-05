@@ -470,6 +470,7 @@ main_menu_flow() {
     esac
 }
 
+clear
 cat << 'EOF'
 author : b1g_ph4rm4                  |
 _____________________________________|
