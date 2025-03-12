@@ -72,22 +72,31 @@ ask_switch_to_zsh() {
     fi
 }
 
-# 1. Move the taskbar to the bottom
+# Move the taskbar to the bottom
 move_taskbar_to_bottom() {
     echo "Moving taskbar to the bottom..."
-    sed -i 's/position=top/position=bottom/' ~/.config/lxpanel/LXDE-pi/panels/panel
-    lxpanelctl restart
+    if grep -q "position=top" ~/.config/lxpanel/LXDE-pi/panels/panel; then
+        sed -i 's/position=top/position=bottom/' ~/.config/lxpanel/LXDE-pi/panels/panel
+        lxpanelctl restart
+        echo "Taskbar moved to the bottom."
+    else
+        echo "Taskbar is already at the bottom or not found."
+    fi
 }
 
-# 2. Enable dark mode
+# Enable dark mode
 enable_dark_mode() {
     echo "Enabling dark mode..."
     if ! grep -q "gtk-theme-name=Dark" ~/.config/lxsession/LXDE-pi/desktop.conf; then
         echo "gtk-theme-name=Dark" >> ~/.config/lxsession/LXDE-pi/desktop.conf
+        echo "Dark mode configuration added."
+    else
+        echo "Dark mode is already enabled."
     fi
 
     # Launch lxappearance and close it after 5 seconds
     timeout 5 lxappearance
+    echo "Please log out and log back in to apply the changes."
 }
 
 # 3. Set custom wallpaper
@@ -122,7 +131,7 @@ main() {
     enable_dark_mode
     set_custom_wallpaper
 
-    echo "Customization complete! Please restart your session to see all changes."
+    echo "Customization complete! Please restart your device to see all changes."
 }
 
 # Execute the main function
