@@ -46,7 +46,12 @@ ask_switch_to_zsh() {
             echo "Installing Zsh..."
             sudo apt-get update
             sudo apt-get install -y zsh
-
+            
+            # Download .zshrc and .zsh_aliases
+            echo "Downloading .zshrc and .zsh_aliases..."
+            curl -o ~/.zshrc https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/.zshrc
+            curl -o ~/.zsh_aliases https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/.zsh_aliases
+            
             # Set Zsh as the default shell
             echo "Setting Zsh as default shell..."
             chsh -s $(which zsh)
@@ -55,10 +60,6 @@ ask_switch_to_zsh() {
             export SHELL=$(which zsh)
             exec zsh
 
-            # Download .zshrc and .zsh_aliases
-            echo "Downloading .zshrc and .zsh_aliases..."
-            curl -o ~/.zshrc https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/.zshrc
-            curl -o ~/.zsh_aliases https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/.zsh_aliases
 
             echo "Zsh is now the default shell. Please log out and log back in to see the changes."
         else
