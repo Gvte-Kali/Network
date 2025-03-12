@@ -56,12 +56,8 @@ ask_switch_to_zsh() {
             echo "Setting Zsh as default shell..."
             chsh -s $(which zsh)
 
-            # Force Zsh in the current session
-            export SHELL=$(which zsh)
-            exec zsh
 
-
-            echo "Zsh is now the default shell. Please log out and log back in to see the changes."
+            echo "Zsh is now the default shell. Please reboot to see the changes."
         else
             echo "Zsh installation skipped."
         fi
