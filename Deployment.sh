@@ -18,20 +18,21 @@ show_main_menu() {
     local backtitle="Configuration Menu"
     dialog --clear --backtitle "$backtitle" \
            --title "Main Menu" \
-           --menu "Choose an option:" 15 50 3 \
-           1 "Deployment Scripts" "Manage deployment scripts" \
-           2 "Customizing Scripts" "Manage customizing scripts" \
-           99 "Exit" "Exit the menu" 2>menu_choice.txt
+           --nocancel \
+           --menu "Choose an option:" 0 0 3 \
+           "Deployment Scripts" "Manage deployment scripts" \
+           "Customizing Scripts" "Manage customizing scripts" \
+           "Exit" "Exit the menu" 2>menu_choice.txt
 
-    choice=$(cat menu_choice.txt)
+    choice=$(<menu_choice.txt)
     case $choice in
-        1)
+        "Deployment Scripts")
             show_deployment_menu "$backtitle"
             ;;
-        2)
+        "Customizing Scripts")
             show_customizing_menu "$backtitle"
             ;;
-        99)
+        "Exit")
             exit 0
             ;;
         *)
@@ -48,16 +49,17 @@ show_deployment_menu() {
 ├── Deployment Scripts"
     dialog --clear --backtitle "$backtitle" \
            --title "Deployment Scripts" \
-           --menu "Choose an option:" 15 50 3 \
-           1 "Network" "Manage network scripts" \
-           99 "Back to Main Menu" "Return to the main menu" 2>menu_choice.txt
+           --nocancel \
+           --menu "Choose an option:" 0 0 3 \
+           "Network" "Manage network scripts" \
+           "Back to Main Menu" "Return to the main menu" 2>menu_choice.txt
 
-    choice=$(cat menu_choice.txt)
+    choice=$(<menu_choice.txt)
     case $choice in
-        1)
+        "Network")
             show_network_menu "$backtitle"
             ;;
-        99)
+        "Back to Main Menu")
             show_main_menu
             ;;
         *)
@@ -74,16 +76,17 @@ show_network_menu() {
 ├── Network Scripts"
     dialog --clear --backtitle "$backtitle" \
            --title "Network Scripts" \
-           --menu "Choose an option:" 15 50 3 \
-           1 "Easy_PiVPN.sh" "Run Easy_PiVPN setup script" \
-           99 "Back to Deployment Menu" "Return to the deployment menu" 2>menu_choice.txt
+           --nocancel \
+           --menu "Choose an option:" 0 0 3 \
+           "Easy_PiVPN.sh" "Run Easy_PiVPN setup script" \
+           "Back to Deployment Menu" "Return to the deployment menu" 2>menu_choice.txt
 
-    choice=$(cat menu_choice.txt)
+    choice=$(<menu_choice.txt)
     case $choice in
-        1)
+        "Easy_PiVPN.sh")
             bash -c "wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/scripts/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh" && read -p "Press Enter..."
             ;;
-        99)
+        "Back to Deployment Menu")
             show_deployment_menu "$(echo $backtitle | sed 's/│\n├── Network Scripts//')"
             ;;
         *)
@@ -100,16 +103,17 @@ show_customizing_menu() {
 ├── Customizing Scripts"
     dialog --clear --backtitle "$backtitle" \
            --title "Customizing Scripts" \
-           --menu "Choose an option:" 15 50 3 \
-           1 "Raspberry_Pi_Custom.sh" "Run Raspberry Pi customization script" \
-           99 "Back to Main Menu" "Return to the main menu" 2>menu_choice.txt
+           --nocancel \
+           --menu "Choose an option:" 0 0 3 \
+           "Raspberry_Pi_Custom.sh" "Run Raspberry Pi customization script" \
+           "Back to Main Menu" "Return to the main menu" 2>menu_choice.txt
 
-    choice=$(cat menu_choice.txt)
+    choice=$(<menu_choice.txt)
     case $choice in
-        1)
-            execute_script "https://raw.githubusercontent.com/your_username/your_repo/main/Raspberry_Pi_Custom.sh"
+        "Raspberry Pi Customization")
+            execute_script "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/Custom_RPI_OS.sh"
             ;;
-        99)
+        "Back to Main Menu")
             show_main_menu
             ;;
         *)
