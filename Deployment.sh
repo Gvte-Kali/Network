@@ -110,7 +110,7 @@ show_customizing_menu() {
 
     choice=$(<menu_choice.txt)
     case $choice in
-        "Raspberry Pi Customization")
+        "Raspberry_Pi_Custom.sh")
             execute_script "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/Custom_RPI_OS.sh"
             ;;
         "Back to Main Menu")
