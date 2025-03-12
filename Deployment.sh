@@ -2,7 +2,7 @@
 
 # Function to check and install dependencies
 check_dependencies() {
-    local dependencies=("wget" "ansible")
+    local dependencies=("wget" "whiptail" "ansible")
 
     for dep in "${dependencies[@]}"; do
         if ! command -v $dep &> /dev/null; then
