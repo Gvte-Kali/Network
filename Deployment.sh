@@ -282,9 +282,3 @@ check_dependencies
 
 # Display the main menu
 show_main_menu
-
-# Check and install dependencies
-check_dependencies
-
-# Display the main menu
-show_main_menu
