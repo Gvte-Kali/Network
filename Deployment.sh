@@ -23,10 +23,10 @@ show_main_menu() {
     local choice
 
     choice=$(whiptail --clear --title "$backtitle" \
-           --menu "Choose an option:" $height $width 3 \
-           "1" "Deployment Scripts" \
-           "2" "Customizing Scripts" \
-           "3" "Exit" 3>&1 1>&2 2>&3)
+           --menu "Choose an option:" $height $width 4 \
+           "1" "Deployment Scripts" "Manage and run deployment scripts for your system." \
+           "2" "Customizing Scripts" "Customize your Raspberry Pi settings." \
+           "3" "Exit" "Exit the configuration menu." 3>&1 1>&2 2>&3)
 
     case $choice in
         1) show_deployment_menu "$backtitle" ;;
@@ -38,13 +38,13 @@ show_main_menu() {
 
 # Function to display the deployment menu
 show_deployment_menu() {
-    local backtitle="$1\n\nDeployment Scripts"
+    local backtitle="${1} → Deployment Scripts"
     local choice
 
     choice=$(whiptail --clear --title "$backtitle" \
-           --menu "Choose an option:" 20 70 2 \
-           "1" "Network" \
-           "2" "Back to Main Menu" 3>&1 1>&2 2>&3)
+           --menu "Choose an option:" 20 70 3 \
+           "1" "Network" "Manage network-related scripts." \
+           "2" "Back to Main Menu" "Return to the main menu." 3>&1 1>&2 2>&3)
 
     case $choice in
         1) show_network_menu "$backtitle" ;;
@@ -55,32 +55,32 @@ show_deployment_menu() {
 
 # Function to display the network menu
 show_network_menu() {
-    local backtitle="$1\n\nNetwork Scripts"
+    local backtitle="${1} → Network Scripts"
     local choice
 
     choice=$(whiptail --clear --title "$backtitle" \
-           --menu "Choose an option:" 20 70 2 \
-           "1" "Easy_PiVPN.sh" \
-           "2" "Back to Deployment Menu" 3>&1 1>&2 2>&3)
+           --menu "Choose an option:" 20 70 3 \
+           "1" "Easy_PiVPN.sh" "Run the Easy PiVPN setup script." \
+           "2" "Back to Deployment Menu" "Return to the deployment menu." 3>&1 1>&2 2>&3)
 
     case $choice in
         1)
             bash -c "wget -O /tmp/setup.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Easy_PiVPN/scripts/setup.sh && chmod +x /tmp/setup.sh && sudo bash /tmp/setup.sh"
             ;;
-        2) show_deployment_menu "$(echo -e "$backtitle" | sed 's/\n//')" ;;
+        2) show_deployment_menu "$(echo -e "$backtitle" | sed 's/ → Network Scripts//')" ;;
         *) whiptail --msgbox "Invalid choice. Please try again." 8 50 ;;
     esac
 }
 
 # Function to display the customizing menu
 show_customizing_menu() {
-    local backtitle="$1\n\nCustomizing Scripts"
+    local backtitle="${1} → Customizing Scripts"
     local choice
 
     choice=$(whiptail --clear --title "$backtitle" \
-           --menu "Choose an option:" 20 70 2 \
-           "1" "Raspberry_Pi_Customization" \
-           "2" "Back to Main Menu" 3>&1 1>&2 2>&3)
+           --menu "Choose an option:" 20 70 3 \
+           "1" "Raspberry_Pi_Customization" "Run the Raspberry Pi customization script." \
+           "2" "Back to Main Menu" "Return to the main menu." 3>&1 1>&2 2>&3)
 
     case $choice in
         1)
