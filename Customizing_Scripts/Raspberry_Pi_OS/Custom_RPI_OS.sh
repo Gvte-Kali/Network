@@ -131,11 +131,11 @@ main() {
     enable_dark_mode
     set_custom_wallpaper
 
-    #Return to Deployment Script
-    wget -O /tmp/Deployment.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Deployment.sh && chmod +x /tmp/Deployment.sh && bash /tmp/Deployment.sh
-
     echo "Customization complete! Please restart your device to see all changes."
 }
 
 # Execute the main function
 main
+
+#Return to Deployment Script
+wget -O /tmp/Deployment.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Deployment.sh && chmod +x /tmp/Deployment.sh && bash /tmp/Deployment.sh
