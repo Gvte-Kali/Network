@@ -47,8 +47,14 @@ ask_switch_to_zsh() {
             sudo apt-get update
             sudo apt-get install -y zsh
 
+            # Set Zsh as the default shell
             echo "Setting Zsh as default shell..."
             chsh -s $(which zsh)
+
+            # Force Zsh in the current session
+            export SHELL=$(which zsh)
+            exec zsh
+
             echo "Zsh is now the default shell. Please log out and log back in to see the changes."
         else
             echo "Zsh installation skipped."
@@ -71,7 +77,9 @@ enable_dark_mode() {
     if ! grep -q "gtk-theme-name=Dark" ~/.config/lxsession/LXDE-pi/desktop.conf; then
         echo "gtk-theme-name=Dark" >> ~/.config/lxsession/LXDE-pi/desktop.conf
     fi
-    lxappearance &
+
+    # Launch lxappearance and close it after 5 seconds
+    timeout 5 lxappearance
 }
 
 # 3. Set custom wallpaper
