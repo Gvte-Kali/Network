@@ -23,6 +23,12 @@ detect_default_terminal() {
 
 # Function to ask if the user wants to install terminator
 ask_install_terminator() {
+    # Check if Terminator is already installed
+    if dpkg -l | grep -q terminator; then
+        echo "Terminator is already installed."
+        return
+    fi
+
     dialog --title "Install Terminator" \
            --yesno "Do you want to install Terminator as your terminal emulator?" 10 50
     local response=$?
