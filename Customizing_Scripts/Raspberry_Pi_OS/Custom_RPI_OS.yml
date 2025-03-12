@@ -1,0 +1,118 @@
+---
+- name: Configure Raspberry Pi
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Check and install dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - lxpanelctl
+        - lxappearance
+        - pcmanfm
+        - wget
+        - sed
+        - whiptail
+        - pipx
+        - zsh-syntax-highlighting
+        - zsh-autosuggestions
+      register: install_dependencies
+
+    - name: Verify dependencies installation
+      assert:
+        that:
+          - item in install_dependencies.results | map(attribute='changed') | list
+        msg: "Failed to install dependency: {{ item }}"
+      loop:
+        - lxpanelctl
+        - lxappearance
+        - pcmanfm
+        - wget
+        - sed
+        - whiptail
+        - pipx
+        - zsh-syntax-highlighting
+        - zsh-autosuggestions
+
+    - name: Detect default terminal application
+      command: xdg-mime query default inode/directory
+      register: default_terminal
+      ignore_errors: yes
+
+    - name: Display default terminal
+      debug:
+        msg: "Default terminal detected: {{ default_terminal.stdout | default('No default terminal detected.') }}"
+
+    - name: Install Terminator
+      apt:
+        name: terminator
+        state: present
+      register: install_terminator
+      when: ansible_facts.packages['terminator'] is not defined
+
+    - name: Verify Terminator installation
+      assert:
+        that:
+          - install_terminator is not failed
+        msg: "Failed to install Terminator."
+
+    - name: Switch to Zsh
+      shell: |
+        if [ "$(basename $SHELL)" != "zsh" ]; then
+          chsh -s $(which zsh)
+        fi
+      register: switch_to_zsh
+      when: ansible_facts.packages['zsh'] is not defined
+
+    - name: Verify Zsh switch
+      assert:
+        that:
+          - switch_to_zsh is not failed
+        msg: "Failed to switch to Zsh."
+
+    - name: Move taskbar to the bottom
+      lineinfile:
+        path: ~/.config/lxpanel/LXDE-pi/panels/panel
+        regexp: '^position=top'
+        line: 'position=bottom'
+      register: move_taskbar
+      notify: Restart lxpanel
+
+    - name: Verify taskbar position change
+      assert:
+        that:
+          - move_taskbar.changed
+        msg: "Failed to move taskbar to the bottom."
+
+    - name: Enable dark mode
+      lineinfile:
+        path: ~/.config/lxsession/LXDE-pi/desktop.conf
+        line: 'gtk-theme-name=Dark'
+        state: present
+      register: enable_dark_mode
+
+    - name: Verify dark mode configuration
+      assert:
+        that:
+          - enable_dark_mode.changed
+        msg: "Failed to enable dark mode."
+
+    - name: Set custom wallpaper
+      get_url:
+        url: "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/Wallpaper.png"
+        dest: "/usr/share/rpd-wallpaper/Wallpaper.png"
+      register: set_wallpaper
+
+    - name: Verify wallpaper download
+      assert:
+        that:
+          - set_wallpaper is not failed
+        msg: "Failed to download the wallpaper."
+
+  handlers:
+    - name: Restart lxpanel
+      command: lxpanelctl restart
+
+    - name: Set wallpaper
+      command: pcmanfm --set-wallpaper="/usr/share/rpd-wallpaper/Wallpaper.png"
