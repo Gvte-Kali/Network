@@ -105,12 +105,12 @@ show_customizing_menu() {
            --title "Customizing Scripts" \
            --nocancel \
            --menu "Choose an option:" 0 0 3 \
-           "Raspberry_Pi_Custom.sh" "Run Raspberry Pi customization script" \
+           "Raspberry_Pi_Customization" "Run Raspberry Pi customization script" \
            "Back to Main Menu" "Return to the main menu" 2>menu_choice.txt
 
     choice=$(<menu_choice.txt)
     case $choice in
-        "Raspberry_Pi_Custom.sh")
+        "Raspberry_Pi_Customization")
             execute_script "https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/Custom_RPI_OS.sh"
             ;;
         "Back to Main Menu")
