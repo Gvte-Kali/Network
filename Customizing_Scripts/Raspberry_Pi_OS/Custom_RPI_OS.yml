@@ -8,7 +8,6 @@
         name: "{{ item }}"
         state: present
       loop:
-        - lxpanelctl
         - lxappearance
         - pcmanfm
         - wget
@@ -25,7 +24,6 @@
           - item in install_dependencies.results | map(attribute='changed') | list
         msg: "Failed to install dependency: {{ item }}"
       loop:
-        - lxpanelctl
         - lxappearance
         - pcmanfm
         - wget
@@ -109,10 +107,6 @@
         that:
           - set_wallpaper is not failed
         msg: "Failed to download the wallpaper."
-
-  handlers:
-    - name: Restart lxpanel
-      command: lxpanelctl restart
 
     - name: Set wallpaper
       command: pcmanfm --set-wallpaper="/usr/share/rpd-wallpaper/Wallpaper.png"
