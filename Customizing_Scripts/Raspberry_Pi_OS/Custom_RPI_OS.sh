@@ -2,7 +2,7 @@
 
 # Function to check and install dependencies
 check_dependencies() {
-    local dependencies=("lxpanelctl" "lxappearance" "pcmanfm" "wget" "sed" "dialog")
+    local dependencies=("lxpanelctl" "lxappearance" "pcmanfm" "wget" "sed" "dialog" "pipx")
 
     for dep in "${dependencies[@]}"; do
         if ! command -v $dep &> /dev/null; then
