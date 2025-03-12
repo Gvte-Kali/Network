@@ -33,6 +33,7 @@ show_main_menu() {
             show_customizing_menu "$backtitle"
             ;;
         "Exit")
+            clear
             exit 0
             ;;
         *)
