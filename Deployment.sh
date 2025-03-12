@@ -2,7 +2,7 @@
 
 # Function to check and install dependencies
 check_dependencies() {
-    local dependencies=("dialog" "wget")
+    local dependencies=("dialog" "wget" "ansible")
 
     for dep in "${dependencies[@]}"; do
         if ! command -v $dep &> /dev/null; then
@@ -19,9 +19,9 @@ show_main_menu() {
     dialog --clear --backtitle "$backtitle" \
            --title "Main Menu" \
            --menu "Choose an option:" 15 50 3 \
-           1 "Deployment Scripts" \
-           2 "Customizing Scripts" \
-           99 "Exit" 2>menu_choice.txt
+           1 "Deployment Scripts" "Manage deployment scripts" \
+           2 "Customizing Scripts" "Manage customizing scripts" \
+           99 "Exit" "Exit the menu" 2>menu_choice.txt
 
     choice=$(cat menu_choice.txt)
     case $choice in
@@ -49,8 +49,8 @@ show_deployment_menu() {
     dialog --clear --backtitle "$backtitle" \
            --title "Deployment Scripts" \
            --menu "Choose an option:" 15 50 3 \
-           1 "Network" \
-           99 "Back to Main Menu" 2>menu_choice.txt
+           1 "Network" "Manage network scripts" \
+           99 "Back to Main Menu" "Return to the main menu" 2>menu_choice.txt
 
     choice=$(cat menu_choice.txt)
     case $choice in
@@ -75,8 +75,8 @@ show_network_menu() {
     dialog --clear --backtitle "$backtitle" \
            --title "Network Scripts" \
            --menu "Choose an option:" 15 50 3 \
-           1 "Easy_PiVPN.sh" \
-           99 "Back to Deployment Menu" 2>menu_choice.txt
+           1 "Easy_PiVPN.sh" "Run Easy_PiVPN setup script" \
+           99 "Back to Deployment Menu" "Return to the deployment menu" 2>menu_choice.txt
 
     choice=$(cat menu_choice.txt)
     case $choice in
@@ -101,8 +101,8 @@ show_customizing_menu() {
     dialog --clear --backtitle "$backtitle" \
            --title "Customizing Scripts" \
            --menu "Choose an option:" 15 50 3 \
-           1 "Raspberry_Pi_Custom.sh" \
-           99 "Back to Main Menu" 2>menu_choice.txt
+           1 "Raspberry_Pi_Custom.sh" "Run Raspberry Pi customization script" \
+           99 "Back to Main Menu" "Return to the main menu" 2>menu_choice.txt
 
     choice=$(cat menu_choice.txt)
     case $choice in
