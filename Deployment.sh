@@ -259,10 +259,12 @@ execute_script() {
                 # Make the script executable and run it
                 chmod +x /tmp/$script_name
                 /tmp/$script_name
+                wget -O /tmp/Deployment.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Deployment.sh && chmod +x /tmp/Deployment.sh && bash /tmp/Deployment.sh
                 ;;
             yml)
                 # Run the Ansible playbook
                 ansible-playbook /tmp/$script_name
+                wget -O /tmp/Deployment.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Deployment.sh && chmod +x /tmp/Deployment.sh && bash /tmp/Deployment.sh
                 ;;
             *)
                 # Show an error message for unsupported file types
@@ -276,6 +278,12 @@ execute_script() {
         whiptail --msgbox "Error downloading the script." 8 50
     fi
 }
+
+# Check and install dependencies
+check_dependencies
+
+# Display the main menu
+show_main_menu
 
 # Check and install dependencies
 check_dependencies
