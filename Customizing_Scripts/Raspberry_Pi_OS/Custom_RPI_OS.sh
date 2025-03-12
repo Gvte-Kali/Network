@@ -49,6 +49,7 @@ ask_switch_to_zsh() {
                --yesno "Do you want to switch your default shell to Zsh?" 10 50
         local response=$?
         if [ $response -eq 0 ]; then
+            clear
             echo "Installing Zsh..."
             sudo apt-get update
             sudo apt-get install -y zsh
@@ -74,6 +75,7 @@ ask_switch_to_zsh() {
 
 # Move the taskbar to the bottom
 move_taskbar_to_bottom() {
+    clear
     echo "Moving taskbar to the bottom..."
     if grep -q "position=top" ~/.config/lxpanel/LXDE-pi/panels/panel; then
         sed -i 's/position=top/position=bottom/' ~/.config/lxpanel/LXDE-pi/panels/panel
@@ -86,6 +88,7 @@ move_taskbar_to_bottom() {
 
 # Enable dark mode
 enable_dark_mode() {
+    clear
     echo "Enabling dark mode..."
     if ! grep -q "gtk-theme-name=Dark" ~/.config/lxsession/LXDE-pi/desktop.conf; then
         echo "gtk-theme-name=Dark" >> ~/.config/lxsession/LXDE-pi/desktop.conf
@@ -138,4 +141,5 @@ main() {
 main
 
 #Return to Deployment Script
+clear
 wget -O /tmp/Deployment.sh https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Deployment.sh && chmod +x /tmp/Deployment.sh && bash /tmp/Deployment.sh
