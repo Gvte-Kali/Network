@@ -7,21 +7,21 @@ check_dependencies() {
 
     for dep in "${dependencies[@]}"; do
         if ! command -v $dep &> /dev/null; then
-            whiptail --title "Dependency Check" --msgbox "$dep is not installed. Installing..." 8 50
+            echo "$dep is not installed. Installing..."
             sudo apt-get update
             if sudo apt-get install -y $dep; then
-                whiptail --title "Dependency Check" --msgbox "$dep has been installed successfully." 8 50
+                echo "$dep has been installed successfully."
             else
-                whiptail --title "Dependency Check" --msgbox "Failed to install $dep. Please check your package manager." 8 50
+                echo "Failed to install $dep. Please check your package manager."
                 all_installed=false
             fi
         else
-            whiptail --title "Dependency Check" --msgbox "$dep is already installed." 8 50
+            echo "$dep is already installed."
         fi
     done
 
     if $all_installed; then
-        whiptail --title "Dependency Check" --msgbox "All dependencies are installed." 8 50
+        echo "All dependencies are installed."
     fi
 }
 
@@ -29,29 +29,29 @@ check_dependencies() {
 detect_default_terminal() {
     local default_terminal=$(xdg-mime query default inode/directory)
     if [ -z "$default_terminal" ]; then
-        whiptail --title "Default Terminal" --msgbox "No default terminal detected." 8 50
+        echo "No default terminal detected."
     else
-        whiptail --title "Default Terminal" --msgbox "Default terminal detected: $default_terminal" 8 50
+        echo "Default terminal detected: $default_terminal"
     fi
 }
 
 # Function to ask if the user wants to install Terminator
 ask_install_terminator() {
     if command -v terminator &> /dev/null; then
-        whiptail --title "Terminator Check" --msgbox "Terminator is already installed." 8 50
+        echo "Terminator is already installed."
         return
     fi
 
     if (whiptail --title "Install Terminator" --yesno "Do you want to install Terminator as your terminal emulator?" 10 50); then
-        whiptail --title "Installing Terminator" --msgbox "Installing Terminator..." 8 50
+        echo "Installing Terminator..."
         sudo apt-get update
         if sudo apt-get install -y terminator; then
-            whiptail --title "Terminator Installation" --msgbox "Terminator has been installed successfully." 8 50
+            echo "Terminator has been installed successfully."
         else
-            whiptail --title "Terminator Installation" --msgbox "Failed to install Terminator. Please check your package manager." 8 50
+            echo "Failed to install Terminator. Please check your package manager."
         fi
     else
-        whiptail --title "Terminator Installation" --msgbox "Terminator installation skipped." 8 50
+        echo "Terminator installation skipped."
     fi
 }
 
@@ -60,60 +60,60 @@ ask_switch_to_zsh() {
     local current_shell=$(basename "$SHELL")
     if [ "$current_shell" != "zsh" ]; then
         if (whiptail --title "Switch to Zsh" --yesno "Do you want to switch your default shell to Zsh?" 10 50); then
-            whiptail --title "Installing Zsh" --msgbox "Installing Zsh..." 8 50
+            echo "Installing Zsh..."
             sudo apt-get update
             if sudo apt-get install -y zsh; then
-                whiptail --title "Downloading Configuration" --msgbox "Downloading .zshrc and .zsh_aliases..." 8 50
+                echo "Downloading .zshrc and .zsh_aliases..."
                 if curl -o ~/.zshrc https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/.zshrc && \
                    curl -o ~/.zsh_aliases https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/.zsh_aliases; then
-                    whiptail --title "Setting Default Shell" --msgbox "Setting Zsh as default shell..." 8 50
+                    echo "Setting Zsh as default shell..."
                     chsh -s $(which zsh)
-                    whiptail --title "Zsh Installation" --msgbox "Zsh is now the default shell. Please reboot to see the changes." 8 50
+                    echo "Zsh is now the default shell. Please reboot to see the changes."
                 else
-                    whiptail --title "Configuration Error" --msgbox "Failed to download Zsh configuration files." 8 50
+                    echo "Failed to download Zsh configuration files."
                 fi
             else
-                whiptail --title "Zsh Installation" --msgbox "Failed to install Zsh. Please check your package manager." 8 50
+                echo "Failed to install Zsh. Please check your package manager."
             fi
         else
-            whiptail --title "Zsh Installation" --msgbox "Zsh installation skipped." 8 50
+            echo "Zsh installation skipped."
         fi
     else
-        whiptail --title "Zsh Check" --msgbox "Zsh is already the default shell." 8 50
+        echo "Zsh is already the default shell."
     fi
 }
 
 # Function to move the taskbar to the bottom
 move_taskbar_to_bottom() {
-    whiptail --title "Moving Taskbar" --msgbox "Moving taskbar to the bottom..." 8 50
+    echo "Moving taskbar to the bottom..."
     if grep -q "position=top" ~/.config/lxpanel/LXDE-pi/panels/panel; then
         if sed -i 's/position=top/position=bottom/' ~/.config/lxpanel/LXDE-pi/panels/panel; then
             lxpanelctl restart
-            whiptail --title "Taskbar Position" --msgbox "Taskbar moved to the bottom." 8 50
+            echo "Taskbar moved to the bottom."
         else
-            whiptail --title "Taskbar Position" --msgbox "Failed to update taskbar position." 8 50
+            echo "Failed to update taskbar position."
         fi
     else
-        whiptail --title "Taskbar Position" --msgbox "Taskbar is already at the bottom or not found." 8 50
+        echo "Taskbar is already at the bottom or not found."
     fi
 }
 
 # Function to enable dark mode
 enable_dark_mode() {
-    whiptail --title "Enabling Dark Mode" --msgbox "Enabling dark mode..." 8 50
+    echo "Enabling dark mode..."
     if ! grep -q "gtk-theme-name=Dark" ~/.config/lxsession/LXDE-pi/desktop.conf; then
         if echo "gtk-theme-name=Dark" >> ~/.config/lxsession/LXDE-pi/desktop.conf; then
-            whiptail --title "Dark Mode Configuration" --msgbox "Dark mode configuration added." 8 50
+            echo "Dark mode configuration added."
         else
-            whiptail --title "Dark Mode Configuration" --msgbox "Failed to add dark mode configuration." 8 50
+            echo "Failed to add dark mode configuration."
         fi
     else
-        whiptail --title "Dark Mode Check" --msgbox "Dark mode is already enabled." 8 50
+        echo "Dark mode is already enabled."
     fi
 
-    whiptail --title "Launching lxappearance" --msgbox "Launching lxappearance for 5 seconds..." 8 50
+    echo "Launching lxappearance for 5 seconds..."
     timeout 5 lxappearance
-    whiptail --title "Logout Reminder" --msgbox "Please log out and log back in to apply the changes." 8 50
+    echo "Please log out and log back in to apply the changes."
 }
 
 # Function to set a custom wallpaper
@@ -121,15 +121,16 @@ set_custom_wallpaper() {
     local wallpaper_url="https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/Wallpaper.png"
     local wallpaper_path="/usr/share/rpd-wallpaper/Wallpaper.png"
 
-    whiptail --title "Setting Wallpaper" --msgbox "Downloading and setting custom wallpaper..." 8 50
+    echo "Downloading and setting custom wallpaper..."
     if sudo wget -O "$wallpaper_path" "$wallpaper_url"; then
         if command -v pcmanfm &> /dev/null; then
             pcmanfm --set-wallpaper="$wallpaper_path"
+            echo "Custom wallpaper set successfully."
         else
-            whiptail --title "Wallpaper Error" --msgbox "pcmanfm is not installed. Please install it to set the wallpaper." 8 50
+            echo "pcmanfm is not installed. Please install it to set the wallpaper."
         fi
     else
-        whiptail --title "Wallpaper Error" --msgbox "Failed to download the wallpaper." 8 50
+        echo "Failed to download the wallpaper."
     fi
 }
 
@@ -143,7 +144,7 @@ main() {
     enable_dark_mode
     set_custom_wallpaper
 
-    whiptail --title "Completion" --msgbox "Customization complete! Please restart your device to see all changes." 8 50
+    echo "Customization complete! Please restart your device to see all changes."
 }
 
 # Execute the main function
