@@ -78,7 +78,7 @@ def show_customizing_menu():
         choice = stdscr.getch() - ord('0')
         if 1 <= choice <= len(options):
             if choice == 1:
-                execute_script("https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/Custom_RPI_OS.sh")
+                execute_script("https://raw.githubusercontent.com/Gvte-Kali/Network/refs/heads/main/Customizing_Scripts/Raspberry_Pi_OS/Custom_RPI_OS.py")
             elif choice == 2:
                 return  # Back to main menu
         else:
