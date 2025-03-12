@@ -136,13 +136,17 @@ execute_script() {
         # Make the script executable
         chmod +x /tmp/$script_name
 
-        # Execute the script
-        /tmp/$script_name
+        # Execute the script in a subshell
+        bash /tmp/$script_name
 
         # Remove the script after execution
         rm /tmp/$script_name
+
+        # Return to the main program
+        return 0
     else
         dialog --msgbox "Error downloading the script." 10 50
+        return 1
     fi
 }
 
