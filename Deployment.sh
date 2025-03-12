@@ -221,7 +221,7 @@ show_customization_options_menu() {
     local choice
 
     choice=$(whiptail --clear --title "$backtitle" \
-           --menu "Choose an option:" 20 60 2 \
+           --menu "Choose an option:" 20 60 3 \
            "1" "Run Custom_RPI_OS.sh" \
            "2" "Run Custom_RPI_OS.yml" \
            "99" "Back to Customizing Scripts" 3>&1 1>&2 2>&3)
