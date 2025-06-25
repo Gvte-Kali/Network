@@ -1,5 +1,7 @@
+#!/bin/bash
+
 # Define colors
- GRAY_BLUE="\033[1;34m"    # Dark gray blue
+GRAY_BLUE="\033[1;34m"    # Dark gray blue
 LIGHT_BLUE="\033[1;36m"   # Light blue
 RED="\033[1;31m"          # Red
 GREEN="\033[1;32m"        # Green
@@ -16,57 +18,46 @@ step7() {
     echo ""
     echo ""
 
-    # Identify network interfaces
-    interfaces=($(ip -o -f inet addr show | awk '{print $2}'))
-    echo -e "${YELLOW}Available network interfaces:${NC}"
-    for i in "${!interfaces[@]}"; do
-        echo "$((i + 1)). ${interfaces[i]}"
-    done
-
-    # Select LAN interface
-    read -p "Select the LAN interface (number): " lan_choice
-    LAN_INTERFACE="${interfaces[$((lan_choice - 1))]}"
-    
-    # Identify OpenVPN interface
-    VPN_INTERFACE="tun0"  # Default for OpenVPN
-    VPN_NETWORK="10.8.0.0/24"  # Default OpenVPN IP range
+    # Configure firewall to allow OpenVPN traffic
+    echo -e "${YELLOW}Configuring firewall...${NC}"
+    sudo ufw allow 1194/udp
 
     # Enable IP forwarding
-    sudo sysctl -w net.ipv4.ip_forward=1
-    sudo sed -i 's/#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+    echo -e "${YELLOW}Enabling IP forwarding...${NC}"
+    echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
 
-    # Configure iptables for NAT
-    sudo iptables -t nat -A POSTROUTING -s "$VPN_NETWORK" -o "$LAN_INTERFACE" -j MASQUERADE
-    sudo iptables -A FORWARD -i "$VPN_INTERFACE" -o "$LAN_INTERFACE" -j ACCEPT
-    sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -m state --state ESTABLISHED,RELATED -j ACCEPT
+    # Modify /etc/sysctl.conf to make IP forwarding permanent
+    echo -e "${YELLOW}Configuring permanent IP forwarding...${NC}"
 
-    # Display the current iptables rules
-    echo -e "\n${LIGHT_BLUE}Current iptables rules:${NC}"
-    sudo iptables -t nat -L -n -v
-    echo
-    sudo iptables -L -n -v
-    echo
-
-    # Display future rules based on user input
-    echo -e "\n${LIGHT_BLUE}Future rules to be created:${NC}"
-    echo "1. NAT rule: POSTROUTING - MASQUERADE for $VPN_NETWORK on $LAN_INTERFACE"
-    echo "2. FORWARD rule: Allow traffic from $VPN_INTERFACE to $LAN_INTERFACE"
-    echo "3. FORWARD rule: Allow established/related traffic from $LAN_INTERFACE to $VPN_INTERFACE"
-
-    # Ask for confirmation to apply the rules
-    echo
-    echo
-    read -p "Do you want to apply these rules? (Y/n): " apply_choice
-    if [[ ! "$apply_choice" =~ ^[Yy]$ ]]; then
-        echo "Configuration not applied. Exiting."
-        return 0
+    # Check if the line exists in the file
+    if grep -q "^[#]*net.ipv4.ip_forward=1" /etc/sysctl.conf; then
+        # If the line exists and is commented, uncomment it
+        sudo sed -i 's/^#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+    else
+        # If the line does not exist, append it to the file
+        echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf > /dev/null
     fi
 
-    # Save the rules
-    sudo apt-get install -y iptables-persistent
-    sudo netfilter-persistent save
+    # Apply changes
+    sudo sysctl -p
 
-    echo -e "${GREEN}Configuration complete. LAN access from OpenVPN enabled.${NC}"
+    # Add iptables rules for NAT
+    echo -e "${YELLOW}Configuring iptables rules for NAT...${NC}"
+    sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    sudo iptables -A FORWARD -i tun0 -o eth0 -j ACCEPT
+    sudo iptables -A FORWARD -i eth0 -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    # Install iptables-persistent to make iptables rules persistent
+    echo -e "${YELLOW}Installing iptables-persistent...${NC}"
+    sudo apt install iptables-persistent -y
+
+    # Save current iptables rules
+    echo -e "${YELLOW}Saving iptables rules...${NC}"
+    sudo netfilter-persistent save
+    sudo netfilter-persistent reload
+
+    echo -e "${GREEN}Configuration completed successfully.${NC}"
 }
 
+# Call the function to execute the steps
 step7
