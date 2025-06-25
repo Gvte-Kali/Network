@@ -18,6 +18,20 @@ step7() {
     echo ""
     echo ""
 
+    # Identify network interfaces
+    interfaces=($(ip -o -f inet addr show | awk '{print $2}'))
+    echo -e "${YELLOW}Available network interfaces:${NC}"
+    for i in "${!interfaces[@]}"; do
+        echo "$((i + 1)). ${interfaces[i]}"
+    done
+
+    # Select LAN interface
+    read -p "Select the LAN interface (number): " lan_choice
+    LAN_INTERFACE="${interfaces[$((lan_choice - 1))]}"
+
+    # Identify OpenVPN interface
+    VPN_INTERFACE="tun0"  # Default for OpenVPN
+
     # Configure firewall to allow OpenVPN traffic
     echo -e "${YELLOW}Configuring firewall...${NC}"
     sudo ufw allow 1194/udp
@@ -43,9 +57,9 @@ step7() {
 
     # Add iptables rules for NAT
     echo -e "${YELLOW}Configuring iptables rules for NAT...${NC}"
-    sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-    sudo iptables -A FORWARD -i tun0 -o eth0 -j ACCEPT
-    sudo iptables -A FORWARD -i eth0 -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+    sudo iptables -t nat -A POSTROUTING -o "$LAN_INTERFACE" -j MASQUERADE
+    sudo iptables -A FORWARD -i "$VPN_INTERFACE" -o "$LAN_INTERFACE" -j ACCEPT
+    sudo iptables -A FORWARD -i "$LAN_INTERFACE" -o "$VPN_INTERFACE" -m state --state RELATED,ESTABLISHED -j ACCEPT
 
     # Install iptables-persistent to make iptables rules persistent
     echo -e "${YELLOW}Installing iptables-persistent...${NC}"
